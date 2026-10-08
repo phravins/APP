@@ -8,7 +8,8 @@ import '../../../shared/models/models.dart';
 import '../../../shared/widgets/due_widgets.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
-  const CalendarScreen({super.key});
+  final DateTime? initialDate;
+  const CalendarScreen({super.key, this.initialDate});
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarState();
 }
@@ -19,8 +20,19 @@ class _CalendarState extends ConsumerState<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    selected = ref.read(todayProvider);
+    selected = DueDates.date(widget.initialDate ?? ref.read(todayProvider));
     month = DateTime.utc(selected.year, selected.month);
+  }
+
+  @override
+  void didUpdateWidget(covariant CalendarScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialDate != null &&
+        widget.initialDate != oldWidget.initialDate) {
+      selected = DueDates.date(widget.initialDate!);
+      month = DateTime.utc(selected.year, selected.month);
+      agenda = false;
+    }
   }
 
   @override

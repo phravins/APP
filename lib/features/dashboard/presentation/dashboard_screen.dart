@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../app/providers.dart';
-import '../../../core/config/environment.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/due_dates.dart';
 import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
+import '../../../core/widgets/illustrations.dart';
 import '../../../shared/widgets/due_widgets.dart';
 import '../../../shared/models/models.dart';
 import '../domain/dashboard_summary.dart';
@@ -23,9 +24,11 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider),
-        items = ref.watch(dueItemsProvider),
-        summary = ref.watch(dashboardProvider),
         org = ref.watch(organisationProvider);
+    final items = ref.watch(dueItemsProvider),
+        summary = ref.watch(dashboardProvider);
+    final today = ref.watch(todayProvider),
+        pins = ref.watch(pinnedItemsProvider);
     final next = items.where((i) => !i.isClosed).toList()
       ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
     final completed =
@@ -40,41 +43,36 @@ class DashboardScreen extends ConsumerWidget {
               a.completionDate ?? a.updatedAt,
             ),
           );
+    final pinned = items
+        .where((i) => pins.contains(i.id) && i.status != DueStatus.archived)
+        .toList();
     final unread = ref
         .watch(notificationsProvider)
         .where((n) => !n.read)
         .length;
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? 'Good morning'
-        : hour < 17
-        ? 'Good afternoon'
-        : 'Good evening';
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return WorkspaceBody(
       child: PageBody(
         onRefresh: () => ref.read(workspaceProvider.notifier).refresh(),
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      DateFormat(
-                        'EEEE, d MMMM',
-                      ).format(ref.watch(todayProvider)).toUpperCase(),
+                      DateFormat('EEE, d MMM').format(today).toUpperCase(),
                       style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.5,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                        letterSpacing: 1,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 4),
                     Text(
-                      '$greeting,\n${user.name.split(' ').first}',
+                      'Hello, ${user.name.split(' ').first}',
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const CompanySwitcher(),
@@ -90,95 +88,69 @@ class DashboardScreen extends ConsumerWidget {
                   icon: const Icon(Icons.notifications_none_rounded),
                 ),
               ),
-              const SizedBox(width: 4),
               IconButton(
                 tooltip: 'Profile',
                 onPressed: () => context.push('/profile'),
                 icon: UserAvatar(
                   name: user.name,
                   image: user.avatarUrl,
-                  radius: 19,
+                  radius: 17,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 8),
           GlassCard(
             blur: true,
-            tint: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xCC25213F)
-                : const Color(0xEDE7E5FF),
-            padding: const EdgeInsets.all(22),
+            tint: dark ? const Color(0xF02C2945) : const Color(0xF5EEECFF),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(9),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: .13),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        summary.attention > 0
-                            ? Icons.bolt_rounded
-                            : Icons.check_circle_outline,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        'YOUR ATTENTION, PLEASE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  summary.attention == 0
-                      ? 'You’re all caught up.'
-                      : '${summary.attention} items need\nyour attention',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineMedium?.copyWith(height: 1.22),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '${summary.overdue} overdue  ·  ${summary.today} today  ·  ${summary.dueSoon} due soon',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
                     Expanded(
-                      child: Text(
-                        'A clear desk starts here.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    FilledButton(
-                      onPressed: () => context.go('/due?filter=Attention'),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Review now'),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_rounded, size: 16),
+                          Text(
+                            'NEEDS ATTENTION',
+                            style: TextStyle(
+                              fontSize: 10,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            summary.attention == 0
+                                ? 'You’re all caught up.'
+                                : '${summary.attention} items need your attention',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                         ],
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    const DeskIllustration(kind: DeskArt.attention, size: 72),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      '${summary.overdue} overdue · ${summary.today} today · ${summary.dueSoon} soon',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/due?filter=Attention'),
+                      child: const Text('Review now'),
                     ),
                   ],
                 ),
@@ -188,80 +160,67 @@ class DashboardScreen extends ConsumerWidget {
           const SectionHeader(title: 'Due overview'),
           LayoutBuilder(
             builder: (context, c) {
-              final columns = c.maxWidth > 650 ? 4 : 2;
+              final cols = c.maxWidth > 650 ? 4 : 2;
               final metrics = [
                 (
                   'Overdue',
                   summary.overdue,
                   Icons.warning_amber_rounded,
                   AppColors.danger,
-                  'Needs a little attention',
                 ),
                 (
                   'Today',
                   summary.today,
                   Icons.today_outlined,
                   AppColors.warning,
-                  'Make today count',
                 ),
                 (
                   'This Week',
                   summary.thisWeek,
                   Icons.date_range_outlined,
                   AppColors.primary,
-                  'Keep a step ahead',
                 ),
                 (
                   'Upcoming',
                   summary.upcoming,
                   Icons.event_available_outlined,
-                  const Color(0xFF568FCA),
-                  'On the horizon',
+                  const Color(0xFF318CBC),
                 ),
               ];
               return Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  for (final (label, count, icon, color, caption) in metrics)
+                  for (final (label, count, icon, color) in metrics)
                     SizedBox(
-                      width: (c.maxWidth - 12 * (columns - 1)) / columns,
+                      width: (c.maxWidth - 8 * (cols - 1)) / cols,
                       child: GlassCard(
-                        padding: const EdgeInsets.all(17),
+                        padding: const EdgeInsets.all(12),
                         onTap: () => context.go(
                           '/due?filter=${Uri.encodeComponent(label)}',
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Row(
-                              children: [
-                                Icon(icon, size: 18, color: color),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
+                            IllustratedIcon(icon: icon, color: color, size: 30),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$count',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge,
+                                  ),
+                                  Text(
                                     label,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                                      color: scheme.onSurfaceVariant,
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 15),
-                            Text(
-                              '$count',
-                              style: Theme.of(context).textTheme.headlineLarge,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              caption,
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                ],
                               ),
                             ),
                           ],
@@ -272,29 +231,57 @@ class DashboardScreen extends ConsumerWidget {
               );
             },
           ),
-          const SectionHeader(title: 'Quick actions'),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              if (Permissions.manage(user, org.id))
-                _QuickAction(
-                  label: 'Add Due Item',
-                  icon: Icons.add_rounded,
-                  onTap: () => context.push('/due/new'),
+              if (Permissions.manage(user, org.id)) ...[
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    textStyle: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onPressed: () => context.push('/due/new'),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Due Item'),
                 ),
-              _QuickAction(
-                label: 'Upload document',
-                icon: Icons.upload_file_outlined,
-                onTap: () => context.push('/documents?upload=true'),
-              ),
-              _QuickAction(
-                label: 'Calendar',
-                icon: Icons.calendar_month_outlined,
-                onTap: () => context.go('/calendar'),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    textStyle: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onPressed: () => context.push('/due/new?templates=true'),
+                  icon: const Icon(
+                    Icons.dashboard_customize_outlined,
+                    size: 18,
+                  ),
+                  label: const Text('Templates'),
+                ),
+              ],
+              IconButton.outlined(
+                tooltip: 'Upload document',
+                onPressed: () => context.push('/documents?upload=true'),
+                icon: const Icon(Icons.upload_file_outlined, size: 20),
               ),
             ],
           ),
+          if (pinned.isNotEmpty) ...[
+            SectionHeader(
+              title: 'Pinned obligations',
+              action: 'View all',
+              onAction: () => context.go('/due?filter=Pinned'),
+            ),
+            for (final item in pinned.take(2)) DueItemCard(item: item),
+          ],
           SectionHeader(
             title: 'Upcoming deadlines',
             action: 'View all',
@@ -305,18 +292,42 @@ class DashboardScreen extends ConsumerWidget {
           else
             LayoutBuilder(
               builder: (context, c) => Wrap(
-                spacing: 16,
+                spacing: 12,
                 children: [
                   for (final item in next.take(4))
                     SizedBox(
                       width: c.maxWidth > 700
-                          ? (c.maxWidth - 16) / 2
+                          ? (c.maxWidth - 12) / 2
                           : c.maxWidth,
                       child: DueItemCard(item: item),
                     ),
                 ],
               ),
             ),
+          SectionHeader(
+            title: 'Your next 7 days',
+            action: 'Calendar',
+            onAction: () => context.go('/calendar'),
+          ),
+          GlassCard(
+            padding: const EdgeInsets.all(8),
+            child: LayoutBuilder(
+              builder: (context, c) => Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  for (var n = 0; n < 7; n++)
+                    SizedBox(
+                      width: (c.maxWidth - 24) / 7,
+                      child: _WeekDay(
+                        day: today.add(Duration(days: n)),
+                        items: next,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
           SectionHeader(
             title: 'Recently completed',
             action: 'View history',
@@ -330,49 +341,60 @@ class DashboardScreen extends ConsumerWidget {
             )
           else
             for (final item in completed.take(2)) DueItemCard(item: item),
-          if (AppConfig.isDemo)
-            Padding(
-              padding: const EdgeInsets.only(top: 14),
-              child: Text(
-                'DEMO WORKSPACE  ·  STORED ON THIS DEVICE',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 9.5,
-                  letterSpacing: 1.1,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 }
 
-class _QuickAction extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  const _QuickAction({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
+class _WeekDay extends StatelessWidget {
+  final DateTime day;
+  final List<DueItem> items;
+  const _WeekDay({required this.day, required this.items});
   @override
-  Widget build(BuildContext context) => GlassCard(
-    onTap: onTap,
-    radius: 14,
-    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 15),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 7),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+  Widget build(BuildContext context) {
+    final count = items
+        .where((i) => DueDates.daysLeft(i.dueDate, day) == 0)
+        .length;
+    return Semantics(
+      label: '${DateFormat('EEEE d MMMM').format(day)}, $count obligations',
+      button: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => context.go(
+          '/calendar?date=${DateFormat('yyyy-MM-dd').format(day)}',
         ),
-      ],
-    ),
-  );
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              Text(
+                DateFormat('EEEEE').format(day),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${day.day}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: count > 0
+                      ? AppColors.primary
+                      : Theme.of(context).dividerColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../core/widgets/glass.dart';
+import '../../core/widgets/illustrations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/due_dates.dart';
 import '../models/models.dart';
@@ -104,57 +105,65 @@ class DueItemCard extends ConsumerWidget {
     final today = ref.watch(todayProvider),
         status = DueDates.status(item, ref.watch(todayProvider));
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final pinned = ref.watch(pinnedItemsProvider).contains(item.id);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: GlassCard(
         onTap: () => context.push('/due/${item.id}'),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  categoryIcon(item.categoryName),
-                  size: 17,
-                  color: Theme.of(context).colorScheme.primary,
+                IllustratedIcon(
+                  icon: categoryIcon(item.categoryName),
+                  color: statusColor(status),
+                  size: 32,
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     item.categoryName.toUpperCase(),
                     style: TextStyle(
-                      fontSize: 10.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
+                      letterSpacing: .8,
                       color: muted,
                     ),
                   ),
                 ),
                 if (item.priority == Priority.high ||
                     item.priority == Priority.critical)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.flag_outlined,
-                        size: 14,
-                        color: item.priority == Priority.critical
-                            ? AppColors.danger
-                            : muted,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        item.priority.label,
-                        style: TextStyle(fontSize: 11, color: muted),
-                      ),
-                    ],
+                  Text(
+                    item.priority.label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: item.priority == Priority.critical
+                          ? statusTextColor(context, DueStatus.overdue)
+                          : muted,
+                    ),
                   ),
+                IconButton(
+                  tooltip: pinned ? 'Unpin obligation' : 'Pin obligation',
+                  isSelected: pinned,
+                  icon: const Icon(Icons.bookmark_border_rounded, size: 20),
+                  selectedIcon: Icon(
+                    Icons.bookmark_rounded,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  onPressed: () => runAction(
+                    context,
+                    () =>
+                        ref.read(pinnedItemsProvider.notifier).toggle(item.id),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
             Text(item.title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 7),
+            const SizedBox(height: 6),
             Wrap(
               spacing: 8,
               runSpacing: 4,
@@ -164,7 +173,9 @@ class DueItemCard extends ConsumerWidget {
                   style: TextStyle(fontSize: 12, color: muted),
                 ),
                 Text(
-                  '·  ${item.isClosed ? status.label : DueDates.relative(item.dueDate, today)}',
+                  item.isClosed
+                      ? status.label
+                      : DueDates.relative(item.dueDate, today),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -173,32 +184,55 @@ class DueItemCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 17),
-            Row(
-              children: [
-                UserAvatar(name: item.assignedToName, radius: 12),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    item.assignedToName,
-                    style: TextStyle(fontSize: 12, color: muted),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (item.documentCount > 0) ...[
-                  Icon(Icons.attach_file_rounded, size: 15, color: muted),
-                  Text(
-                    '${item.documentCount}',
-                    style: TextStyle(fontSize: 11, color: muted),
-                  ),
-                  const SizedBox(width: 9),
-                ],
-                if (item.frequency != Frequency.oneTime) ...[
-                  Icon(Icons.repeat_rounded, size: 16, color: muted),
-                  const SizedBox(width: 10),
-                ],
-                DueStatusBadge(status: status),
-              ],
+            const SizedBox(height: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final owner = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    UserAvatar(name: item.assignedToName, radius: 11),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        item.assignedToName,
+                        style: TextStyle(fontSize: 12, color: muted),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                );
+                final meta = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (item.documentCount > 0) ...[
+                      Icon(Icons.attach_file_rounded, size: 14, color: muted),
+                      Text(
+                        '${item.documentCount}',
+                        style: TextStyle(fontSize: 11, color: muted),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    if (item.frequency != Frequency.oneTime) ...[
+                      Icon(Icons.repeat_rounded, size: 14, color: muted),
+                      const SizedBox(width: 8),
+                    ],
+                    DueStatusBadge(status: status),
+                  ],
+                );
+                if (MediaQuery.textScalerOf(context).scale(14) > 18) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [owner, const SizedBox(height: 8), meta],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: owner),
+                    const SizedBox(width: 6),
+                    meta,
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -290,7 +324,7 @@ class ScreenHeading extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 24),
+    padding: const EdgeInsets.only(bottom: 16),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

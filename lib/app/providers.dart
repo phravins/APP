@@ -268,3 +268,30 @@ final connectivityProvider = StreamProvider<List<ConnectivityResult>>((
   yield await c.checkConnectivity();
   yield* c.onConnectivityChanged;
 });
+
+/// Personal shortcuts are isolated by account and organisation, never shared permissions.
+final pinnedItemsProvider =
+    NotifierProvider<PinnedItemsController, Set<String>>(
+      PinnedItemsController.new,
+    );
+
+class PinnedItemsController extends Notifier<Set<String>> {
+  String get _key =>
+      'pins:${ref.read(currentUserProvider).id}:${ref.read(organisationProvider).id}';
+  @override
+  Set<String> build() {
+    ref.watch(currentUserProvider);
+    ref.watch(organisationProvider);
+    return ref.read(preferencesProvider).getStringList(_key)?.toSet() ?? {};
+  }
+
+  Future<void> toggle(String id) async {
+    final key = _key;
+    final next = {...state};
+    if (!next.add(id)) next.remove(id);
+    final stored = await ref
+        .read(preferencesProvider)
+        .setStringList(key, next.toList());
+    if (stored && ref.mounted && _key == key) state = next;
+  }
+}

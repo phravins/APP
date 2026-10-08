@@ -56,11 +56,13 @@ class _DueListState extends ConsumerState<DueListScreen> {
       from: filters.from,
       to: filters.to,
     );
+    final pins = ref.watch(pinnedItemsProvider);
     final items = f.apply(
       ref.watch(dueItemsProvider),
       ref.watch(todayProvider),
       user.id,
     );
+    if (segment == 'Pinned') items.removeWhere((i) => !pins.contains(i.id));
     items.sort(
       (a, b) => sort == 'Title'
           ? a.title.compareTo(b.title)
@@ -72,7 +74,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Column(
               children: [
                 ScreenHeading(
@@ -120,7 +122,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -128,6 +130,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
                       for (final label in {
                         'All',
                         'My Items',
+                        'Pinned',
                         'Overdue',
                         'Due Soon',
                         'Completed',
@@ -199,21 +202,29 @@ class _DueListState extends ConsumerState<DueListScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
                         EmptyState(
-                          title: segment == 'Overdue'
+                          title: segment == 'Pinned'
+                              ? 'Keep priorities close.'
+                              : segment == 'Overdue'
                               ? 'Nothing overdue.'
                               : "You're all clear.",
-                          message: query.isNotEmpty
+                          message: segment == 'Pinned'
+                              ? 'Pin an obligation using its bookmark icon. Your pins are personal to this workspace.'
+                              : query.isNotEmpty
                               ? 'Try another search or reset your filters.'
                               : segment == 'Overdue'
                               ? "You're on track."
                               : 'Create your first DueItem to start tracking what matters.',
-                          action: query.isNotEmpty
+                          action: segment == 'Pinned'
+                              ? 'Browse obligations'
+                              : query.isNotEmpty
                               ? 'Clear search'
                               : Permissions.manage(user, org.id)
                               ? 'Create Due Item'
                               : null,
                           onAction: () {
-                            if (query.isNotEmpty) {
+                            if (segment == 'Pinned') {
+                              setState(() => segment = 'All');
+                            } else if (query.isNotEmpty) {
                               search.clear();
                               setState(() => query = '');
                             } else {
@@ -230,7 +241,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
                           physics: const AlwaysScrollableScrollPhysics(),
                           keyboardDismissBehavior:
                               ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
                           itemCount: (items.length / cols).ceil(),
                           itemBuilder: (context, index) => cols == 1
                               ? DueItemCard(item: items[index])

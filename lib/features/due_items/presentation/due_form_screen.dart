@@ -9,10 +9,14 @@ import '../../../core/utils/due_dates.dart';
 import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
 import '../../../shared/models/models.dart';
+import '../domain/due_template.dart';
+import '../../../core/widgets/illustrations.dart';
+import '../../../shared/widgets/due_widgets.dart';
 
 class DueFormScreen extends ConsumerStatefulWidget {
   final String? id;
-  const DueFormScreen({super.key, this.id});
+  final bool showTemplates;
+  const DueFormScreen({super.key, this.id, this.showTemplates = false});
   @override
   ConsumerState<DueFormScreen> createState() => _DueFormState();
 }
@@ -78,6 +82,26 @@ class _DueFormState extends ConsumerState<DueFormScreen> {
     priority = i.priority;
     currency = i.currency;
     reminders = i.reminderConfiguration.daysBefore.toSet();
+  }
+
+  void applyTemplate(DueTemplate template) {
+    setState(() {
+      title.text = template.title;
+      description.text = template.description;
+      frequency = template.frequency;
+      priority = template.priority;
+      category = null;
+      for (final c in ref.read(categoriesProvider)) {
+        if (c.active &&
+            c.name.toLowerCase() == template.category.toLowerCase()) {
+          category = c.id;
+        }
+      }
+    });
+    feedback(
+      context,
+      'Template applied. Choose the due date and responsible person.',
+    );
   }
 
   Future<void> pick() async {
@@ -211,6 +235,43 @@ class _DueFormState extends ConsumerState<DueFormScreen> {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
+                    if (widget.id == null) ...[
+                      const SizedBox(height: 12),
+                      GlassCard(
+                        padding: EdgeInsets.zero,
+                        child: ExpansionTile(
+                          initiallyExpanded: widget.showTemplates,
+                          leading: const IllustratedIcon(
+                            icon: Icons.dashboard_customize_outlined,
+                          ),
+                          title: const Text('Start from a template'),
+                          subtitle: const Text('Filing, renewal or contract'),
+                          children: [
+                            for (final template in DueTemplate.all)
+                              ListTile(
+                                leading: IllustratedIcon(
+                                  icon: categoryIcon(template.category),
+                                ),
+                                title: Text(template.title),
+                                subtitle: Text(template.frequency.label),
+                                trailing: const Icon(Icons.add_rounded),
+                                onTap: () async {
+                                  if (title.text.trim().isNotEmpty &&
+                                      !await confirmAction(
+                                        context,
+                                        'Apply this template?',
+                                        'This replaces the title, description, category, frequency and priority. Your dates, assignee and attachments stay the same.',
+                                        confirm: 'Apply template',
+                                      )) {
+                                    return;
+                                  }
+                                  if (mounted) applyTemplate(template);
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SectionHeader(title: '01  Basic information'),
                     GlassCard(
                       child: Column(

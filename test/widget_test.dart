@@ -102,7 +102,7 @@ void main() {
     tester,
   ) async {
     final c = await boot(tester);
-    expect(find.text('5 items need\nyour attention'), findsOneWidget);
+    expect(find.text('5 items need your attention'), findsOneWidget);
     await tester.tap(find.text('Review now'));
     await tester.pumpAndSettle();
     expect(
@@ -302,6 +302,71 @@ void main() {
   test('Custom scheme normalizes to a detail route', () {
     expect(normalizeDeepLink(Uri.parse('duedesk://due/gst')), '/due/gst');
   });
+  testWidgets('Pinned obligations persist and remain scoped to the company', (
+    tester,
+  ) async {
+    final c = await boot(tester);
+    c.read(routerProvider).go('/due');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pin obligation').first);
+    await tester.pumpAndSettle();
+    final pinned = c.read(pinnedItemsProvider).single;
+    c.invalidate(pinnedItemsProvider);
+    expect(c.read(pinnedItemsProvider), contains(pinned));
+    c.read(routerProvider).go('/due?filter=Pinned');
+    await tester.pumpAndSettle();
+    expect(find.text('1 obligations'), findsOneWidget);
+    await c.read(currentOrganisationProvider.notifier).select('osworks');
+    await tester.pumpAndSettle();
+    expect(c.read(pinnedItemsProvider), isEmpty);
+    await c.read(currentOrganisationProvider.notifier).select('realoffice');
+    await tester.pumpAndSettle();
+    expect(c.read(pinnedItemsProvider), contains(pinned));
+    await tester.tap(find.byTooltip('Unpin obligation'));
+    await tester.pumpAndSettle();
+    expect(find.text('Keep priorities close.'), findsOneWidget);
+  });
+  testWidgets('Templates prefill obligations but require ownership and date', (
+    tester,
+  ) async {
+    final c = await boot(tester);
+    c.read(routerProvider).go('/due/new?templates=true');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insurance Renewal'));
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(TextFormField, 'Insurance Renewal'),
+      findsOneWidget,
+    );
+    await reveal(tester, find.widgetWithText(FilledButton, 'Create Due Item'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Create Due Item'));
+    await tester.pumpAndSettle();
+    expect(find.text('Select assign to.'), findsOneWidget);
+    expect(c.read(dueItemsProvider).length, 8);
+  });
+  testWidgets('Date links select the right calendar day', (tester) async {
+    final c = await boot(tester);
+    c.read(routerProvider).go('/calendar?date=2026-11-12');
+    await tester.pumpAndSettle();
+    await reveal(tester, find.text('Thursday, 12 November'));
+    expect(tester.takeException(), null);
+  });
+  testWidgets('Wide layouts use a working navigation rail', (tester) async {
+    final c = await boot(tester, size: const Size(1024, 900));
+    expect(find.byType(NavigationRail), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Due'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      c.read(routerProvider).routeInformationProvider.value.uri.path,
+      '/due',
+    );
+    expect(tester.takeException(), null);
+  });
   testWidgets('Capture key screens for visual inspection', (tester) async {
     final c = await boot(tester);
     for (final (route, mode, filename) in [
@@ -309,6 +374,9 @@ void main() {
       ('/home', ThemeMode.light, 'dashboard-light'),
       ('/due/gst', ThemeMode.dark, 'due-detail-dark'),
       ('/calendar', ThemeMode.light, 'calendar-light'),
+      ('/due', ThemeMode.light, 'obligations-light'),
+      ('/due?filter=Pinned', ThemeMode.dark, 'empty-pins-dark'),
+      ('/due/new?templates=true', ThemeMode.light, 'templates-light'),
     ]) {
       await c.read(themeProvider.notifier).set(mode);
       c.read(routerProvider).go(route);

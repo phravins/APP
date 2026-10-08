@@ -69,6 +69,16 @@ Demo invitations and password-reset requests do **not** send email. The notifica
 - Organisation switching, scoped roles, company settings, logo, team invitations/access changes, category creation/edit/deactivation, profile and avatar, activity, security information, and notification preferences.
 - System/light/dark appearance with persistence, responsive tablet grids, glass surfaces, floating navigation, accessible labels, loading skeletons, empty/error states, refresh, and offline banners.
 
+## Interface refresh
+
+- More opaque glass surfaces (94% white in light mode; 94% slate in dark mode), 10–14 px corners, compact spacing and stronger text contrast.
+- A denser dashboard with actionable counts, illustrated status icons and deadlines closer to the top.
+- Responsive phone navigation and a side navigation rail from 900 px; list cards adapt to larger text.
+- Coloured vector illustrations and monochrome empty states, bundled locally without network dependencies.
+- **Pinned obligations:** use the bookmark on a card or detail page. Pins persist per account and company and appear on Home and the Pinned list. They never expand a user's access.
+- **Obligation templates:** prefill GST filings, insurance renewals, licence renewals and contract reviews. Users still choose the date and assignee; applying a template to an edited draft requires confirmation.
+- **Next seven days:** a compact deadline strip opens the calendar on the selected date.
+
 ## Architecture
 
 ```text

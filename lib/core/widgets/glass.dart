@@ -8,6 +8,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../app/providers.dart';
 import '../errors/failures.dart';
 import '../theme/app_theme.dart';
+import 'illustrations.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -19,8 +20,8 @@ class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(20),
-    this.radius = 22,
+    this.padding = const EdgeInsets.all(16),
+    this.radius = 12,
     this.blur = false,
     this.onTap,
     this.tint,
@@ -33,19 +34,19 @@ class GlassCard extends StatelessWidget {
         color:
             tint ??
             (dark
-                ? Colors.white.withValues(alpha: .055)
-                : Colors.white.withValues(alpha: .76)),
+                ? const Color(0xF01D2433)
+                : Colors.white.withValues(alpha: .94)),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
           color: dark
               ? Colors.white.withValues(alpha: .11)
-              : Colors.white.withValues(alpha: .95),
+              : const Color(0xFFDCE2ED),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: dark ? .06 : .025),
-            blurRadius: 24,
-            offset: const Offset(0, 6),
+            blurRadius: 14,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -173,7 +174,7 @@ class GlassBottomNavigation extends StatelessWidget {
   Widget build(BuildContext context) => SafeArea(
     top: false,
     child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
       child: Center(
         heightFactor: 1,
         child: ConstrainedBox(
@@ -181,7 +182,7 @@ class GlassBottomNavigation extends StatelessWidget {
           child: GlassCard(
             blur: true,
             padding: const EdgeInsets.all(7),
-            radius: 25,
+            radius: 14,
             child: Row(
               children: [
                 for (final (path, label, icon) in entries)
@@ -189,19 +190,19 @@ class GlassBottomNavigation extends StatelessWidget {
                     child: Semantics(
                       selected: location.startsWith(path),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(10),
                         onTap: () => context.go(path),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
-                            vertical: 10,
+                            vertical: 8,
                             horizontal: 2,
                           ),
                           decoration: BoxDecoration(
                             color: location.startsWith(path)
                                 ? AppColors.primary.withValues(alpha: .13)
                                 : Colors.transparent,
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -273,11 +274,51 @@ class AppShell extends ConsumerWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              Expanded(child: child),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 900) return child;
+                    return Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
+                          child: GlassCard(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: NavigationRail(
+                              backgroundColor: Colors.transparent,
+                              leading: const Padding(
+                                padding: EdgeInsets.only(bottom: 20),
+                                child: BrandMark(size: 36),
+                              ),
+                              labelType: NavigationRailLabelType.all,
+                              selectedIndex: GlassBottomNavigation.entries
+                                  .indexWhere((e) => location.startsWith(e.$1))
+                                  .clamp(0, 4),
+                              onDestinationSelected: (i) => context.go(
+                                GlassBottomNavigation.entries[i].$1,
+                              ),
+                              destinations: [
+                                for (final e in GlassBottomNavigation.entries)
+                                  NavigationRailDestination(
+                                    icon: Icon(e.$3),
+                                    label: Text(e.$2),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Expanded(child: child),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
-        bottomNavigationBar: GlassBottomNavigation(location: location),
+        bottomNavigationBar: MediaQuery.sizeOf(context).width < 900
+            ? GlassBottomNavigation(location: location)
+            : null,
       ),
     );
   }
@@ -466,7 +507,7 @@ class SectionHeader extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 24, bottom: 12),
+    padding: const EdgeInsets.only(top: 18, bottom: 10),
     child: Row(
       children: [
         Expanded(
@@ -494,21 +535,20 @@ class EmptyState extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: .1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            size: 32,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+        DeskIllustration(
+          kind: icon == Icons.cloud_off_outlined
+              ? DeskArt.connection
+              : message.toLowerCase().contains('document')
+              ? DeskArt.documents
+              : message.toLowerCase().contains('search')
+              ? DeskArt.search
+              : DeskArt.clear,
+          size: 112,
+          monochrome: true,
         ),
         const SizedBox(height: 16),
         Text(
@@ -562,7 +602,7 @@ class LoadingSkeleton extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
       ],
@@ -603,9 +643,9 @@ class PageBody extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: EdgeInsets.fromLTRB(
-          c.maxWidth > 700 ? 32 : 20,
-          20,
-          c.maxWidth > 700 ? 32 : 20,
+          c.maxWidth > 700 ? 24 : 16,
+          14,
+          c.maxWidth > 700 ? 24 : 16,
           28,
         ),
         children: eager

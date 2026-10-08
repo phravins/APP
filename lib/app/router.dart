@@ -101,7 +101,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               initialFilter: s.uri.queryParameters['filter'] ?? 'All',
             ),
           ),
-          GoRoute(path: '/calendar', builder: (_, _) => const CalendarScreen()),
+          GoRoute(
+            path: '/calendar',
+            builder: (_, s) => CalendarScreen(
+              initialDate: DateTime.tryParse(
+                s.uri.queryParameters['date'] ?? '',
+              ),
+            ),
+          ),
           GoRoute(
             path: '/documents',
             builder: (_, s) => DocumentsScreen(
@@ -111,7 +118,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/more', builder: (_, _) => const MoreScreen()),
         ],
       ),
-      GoRoute(path: '/due/new', builder: (_, _) => const DueFormScreen()),
+      GoRoute(
+        path: '/due/new',
+        builder: (_, s) => DueFormScreen(
+          showTemplates: s.uri.queryParameters['templates'] == 'true',
+        ),
+      ),
       GoRoute(
         path: '/due/:id/edit',
         builder: (_, s) => DueFormScreen(id: s.pathParameters['id']),

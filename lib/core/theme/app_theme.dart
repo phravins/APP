@@ -33,12 +33,12 @@ abstract final class AppTheme {
     return base.copyWith(
       textTheme: base.textTheme.copyWith(
         headlineLarge: base.textTheme.headlineLarge?.copyWith(
-          fontSize: 32,
+          fontSize: 28,
           fontWeight: FontWeight.w700,
           letterSpacing: -1.2,
         ),
         headlineMedium: base.textTheme.headlineMedium?.copyWith(
-          fontSize: 26,
+          fontSize: 24,
           fontWeight: FontWeight.w700,
           letterSpacing: -.8,
         ),
@@ -50,7 +50,7 @@ abstract final class AppTheme {
         titleMedium: base.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
         ),
-        bodyMedium: base.textTheme.bodyMedium?.copyWith(height: 1.5),
+        bodyMedium: base.textTheme.bodyMedium?.copyWith(height: 1.35),
         labelLarge: base.textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w600,
         ),
@@ -62,18 +62,18 @@ abstract final class AppTheme {
             : Colors.white.withValues(alpha: .8),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 18,
+          vertical: 14,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: scheme.outline.withValues(alpha: .2)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: scheme.outline.withValues(alpha: .18)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: scheme.primary, width: 1.5),
         ),
       ),
@@ -83,7 +83,7 @@ abstract final class AppTheme {
           foregroundColor: Colors.white,
           minimumSize: const Size(48, 52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(10),
           ),
           textStyle: const TextStyle(
             fontFamily: 'Inter',
@@ -96,7 +96,7 @@ abstract final class AppTheme {
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(48, 50),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(10),
           ),
           side: BorderSide(color: scheme.outline.withValues(alpha: .22)),
         ),
@@ -116,7 +116,7 @@ abstract final class AppTheme {
         backgroundColor: scheme.surface,
         showDragHandle: true,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
       ),
       appBarTheme: AppBarTheme(
@@ -129,7 +129,7 @@ abstract final class AppTheme {
       chipTheme: base.chipTheme.copyWith(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         side: BorderSide(color: scheme.outline.withValues(alpha: .15)),
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       ),
     );
   }

@@ -65,6 +65,20 @@ class _DetailState extends ConsumerState<DueDetailScreen> {
     return DueDeskScaffold(
       title: 'Due Item',
       actions: [
+        IconButton(
+          tooltip: ref.watch(pinnedItemsProvider).contains(item.id)
+              ? 'Unpin obligation'
+              : 'Pin obligation',
+          icon: Icon(
+            ref.watch(pinnedItemsProvider).contains(item.id)
+                ? Icons.bookmark_rounded
+                : Icons.bookmark_border_rounded,
+          ),
+          onPressed: () => runAction(
+            context,
+            () => ref.read(pinnedItemsProvider.notifier).toggle(item.id),
+          ),
+        ),
         if (canManage)
           PopupMenuButton<String>(
             tooltip: 'DueItem actions',
@@ -232,7 +246,7 @@ class _DetailState extends ConsumerState<DueDetailScreen> {
           const SizedBox(height: 24),
           GlassCard(
             blur: true,
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 27),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Column(
               children: [
                 Text(
@@ -249,7 +263,7 @@ class _DetailState extends ConsumerState<DueDetailScreen> {
                   DateFormat('d MMM yyyy').format(item.dueDate).toUpperCase(),
                   style: Theme.of(
                     context,
-                  ).textTheme.headlineLarge?.copyWith(fontSize: 29),
+                  ).textTheme.headlineLarge?.copyWith(fontSize: 25),
                 ),
                 const SizedBox(height: 12),
                 Text(

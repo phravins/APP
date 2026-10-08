@@ -7,9 +7,9 @@ Toolchain: Flutter **3.47.6 stable**, Dart **3.13.5**, JDK **21**, Android compi
 | Check | Result |
 | --- | --- |
 | `flutter pub get` | Passed; lockfile included |
-| `dart format .` | Passed; 42 Dart files formatted, no outstanding changes |
+| `dart format .` | Passed; 44 Dart files formatted, no outstanding changes |
 | `flutter analyze` | Passed; **no issues** |
-| `flutter test --reporter expanded` | Passed; **49 tests** |
+| `flutter test --reporter expanded` | Passed; **53 tests** |
 | `flutter build apk --debug` | Passed; universal debug APK generated |
 | Android `apksigner verify` | Passed |
 | `flutter build web` | Passed; WASM compatibility dry run also succeeded |
@@ -29,10 +29,16 @@ Toolchain: Flutter **3.47.6 stable**, Dart **3.13.5**, JDK **21**, Android compi
 - Login validation, live dashboard navigation, UI completion with renewal, required form validation, full create/edit/archive UI flow, debounced search, authentication guards, company/permission switching, and theme persistence.
 - All private destinations at 360 px, tablet dashboard at 1024 px, and core screens on a 360 × 640 phone with 150% text scaling.
 
+## Interface refresh checks
+
+The complete suite passed with 53 tests. The final widget pass also passed all 17 widget/navigation tests after the last spacing adjustments. New checks exercise pin persistence and company isolation, template validation, calendar date links, and navigation-rail routing. Existing 360 px, 150% text and 1024 px tablet checks still pass.
+
+Screenshots cover light/dark dashboards, compact obligation cards, monochrome empty states, templates, detail and calendar screens.
+
 ## Artifacts
 
 - Android debug APK: `/workspace/DueDesk-debug.apk` (also `build/app/outputs/flutter-apk/app-debug.apk`).
-- APK SHA-256: `b6d583d6f6b4ec0e710c63a20749cf9fc4d2bc76824945a3502374b58070f3d9`
+- APK SHA-256: `d33a17d4fd0bd51f63fb32b8fa417ac02aa4e976799b28d3f222eca25cc2e0d8`
 - Source archive: `/workspace/DueDesk-source.zip`.
 - Screenshots: `artifacts/dashboard-light.png`, `dashboard-dark.png`, `due-detail-dark.png`, `calendar-light.png`, and `browser-dashboard.png`.
 - Logs: `artifacts/verification/`.

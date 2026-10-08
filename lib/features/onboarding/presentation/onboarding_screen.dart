@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/providers.dart';
 import '../../../core/widgets/glass.dart';
+import '../../../core/widgets/illustrations.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -73,14 +74,10 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                           children: [
                             GlassCard(
                               blur: true,
-                              padding: const EdgeInsets.all(48),
-                              child: Icon(
-                                icon,
-                                size: 90,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                              padding: const EdgeInsets.all(24),
+                              child: IllustratedIcon(icon: icon, size: 90),
                             ),
-                            const SizedBox(height: 40),
+                            const SizedBox(height: 24),
                             Text(
                               title,
                               style: Theme.of(context).textTheme.headlineLarge,

@@ -5,6 +5,7 @@ import '../../../app/providers.dart';
 import '../../../core/config/environment.dart';
 import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
+import '../../../core/widgets/illustrations.dart';
 import '../../../shared/widgets/due_widgets.dart';
 import '../../due_items/presentation/due_detail_screen.dart';
 
@@ -141,7 +142,7 @@ class _Entry extends StatelessWidget {
   const _Entry(this.label, this.icon, this.path);
   @override
   Widget build(BuildContext context) => ListTile(
-    leading: Icon(icon, size: 22),
+    leading: IllustratedIcon(icon: icon, size: 32),
     title: Text(label, style: const TextStyle(fontSize: 14)),
     trailing: const Icon(Icons.chevron_right, size: 18),
     onTap: () => context.push(path),

@@ -9,6 +9,7 @@ import '../../../core/errors/failures.dart';
 import '../../../core/utils/due_dates.dart';
 import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
+import '../../../core/widgets/illustrations.dart';
 import '../../../shared/models/models.dart';
 
 String fileSize(int bytes) => bytes >= 1024 * 1024
@@ -34,22 +35,16 @@ class DocumentTile extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: .1),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: Icon(
-                document.fileType == 'pdf'
-                    ? Icons.picture_as_pdf_outlined
-                    : document.mimeType.startsWith('image/')
-                    ? Icons.image_outlined
-                    : Icons.description_outlined,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+            IllustratedIcon(
+              size: 40,
+              icon: document.fileType == 'pdf'
+                  ? Icons.picture_as_pdf_outlined
+                  : document.mimeType.startsWith('image/')
+                  ? Icons.image_outlined
+                  : Icons.description_outlined,
+              color: document.fileType == 'pdf'
+                  ? const Color(0xFFD95765)
+                  : const Color(0xFF6C63FF),
             ),
             const SizedBox(width: 12),
             Expanded(
