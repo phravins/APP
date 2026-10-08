@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass.dart';
 import '../../../shared/widgets/due_widgets.dart';
 import 'document_widgets.dart';
@@ -52,6 +53,7 @@ class _DocumentsState extends ConsumerState<DocumentsScreen> {
             title: 'Documents',
             subtitle: 'The evidence behind every obligation.',
             trailing: IconButton.filled(
+              style: AppIconButtonStyles.filled(),
               tooltip: 'Upload document',
               onPressed: () => glassSheet(context, const UploadSheet()),
               icon: const Icon(Icons.add_rounded),
@@ -70,6 +72,9 @@ class _DocumentsState extends ConsumerState<DocumentsScreen> {
               ),
               const SizedBox(width: 10),
               IconButton.outlined(
+                style: AppIconButtonStyles.outlined(
+                  Theme.of(context).colorScheme,
+                ),
                 tooltip: 'Filter documents',
                 onPressed: () => glassSheet(
                   context,

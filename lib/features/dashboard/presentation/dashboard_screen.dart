@@ -51,7 +51,82 @@ class DashboardScreen extends ConsumerWidget {
         .where((n) => !n.read)
         .length;
     final scheme = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final upcoming = next.isEmpty
+        ? <Widget>[
+            const EmptyState(
+              message: 'No open obligations. Enjoy the clarity.',
+            ),
+          ]
+        : [
+            LayoutBuilder(
+              builder: (context, c) => Wrap(
+                spacing: 12,
+                children: [
+                  for (final item in next.take(4))
+                    SizedBox(
+                      width: c.maxWidth > 700
+                          ? (c.maxWidth - 12) / 2
+                          : c.maxWidth,
+                      child: DueItemCard(item: item),
+                    ),
+                ],
+              ),
+            ),
+          ];
+    final upcomingSection = [
+      SectionHeader(
+        title: 'Upcoming deadlines',
+        action: 'View all',
+        onAction: () => context.go('/due'),
+      ),
+      ...upcoming,
+    ];
+    final pinnedSection = [
+      if (pinned.isNotEmpty) ...[
+        SectionHeader(
+          title: 'Pinned obligations',
+          action: 'View all',
+          onAction: () => context.go('/due?filter=Pinned'),
+        ),
+        for (final item in pinned.take(2)) DueItemCard(item: item),
+      ],
+    ];
+    final weekSection = [
+      SectionHeader(
+        title: 'Your next 7 days',
+        action: 'Calendar',
+        onAction: () => context.go('/calendar'),
+      ),
+      GlassCard(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            for (var n = 0; n < 7; n++)
+              Expanded(
+                child: _WeekDay(
+                  day: today.add(Duration(days: n)),
+                  items: next,
+                  isToday: n == 0,
+                ),
+              ),
+          ],
+        ),
+      ),
+    ];
+    final completedSection = [
+      SectionHeader(
+        title: 'Recently completed',
+        action: 'View history',
+        onAction: () => context.go('/due?filter=Completed'),
+      ),
+      if (completed.isEmpty)
+        const EmptyState(
+          title: 'Your history starts here.',
+          message: 'Completed obligations and evidence will stay on record.',
+        )
+      else
+        for (final item in completed.take(2)) DueItemCard(item: item),
+    ];
     return WorkspaceBody(
       child: PageBody(
         onRefresh: () => ref.read(workspaceProvider.notifier).refresh(),
@@ -63,10 +138,11 @@ class DashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      DateFormat('EEE, d MMM').format(today).toUpperCase(),
+                      DateFormat('EEEE, d MMMM').format(today).toUpperCase(),
                       style: TextStyle(
                         fontSize: 11,
-                        letterSpacing: 1,
+                        letterSpacing: 1.1,
+                        fontWeight: FontWeight.w600,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -82,85 +158,33 @@ class DashboardScreen extends ConsumerWidget {
               Badge(
                 isLabelVisible: unread > 0,
                 label: Text('$unread'),
-                child: IconButton(
+                offset: const Offset(-4, 4),
+                child: IconButton.outlined(
                   tooltip: 'Notifications',
+                  style: AppIconButtonStyles.outlined(scheme),
                   onPressed: () => context.push('/notifications'),
                   icon: const Icon(Icons.notifications_none_rounded),
                 ),
               ),
+              const SizedBox(width: 4),
               IconButton(
                 tooltip: 'Profile',
                 onPressed: () => context.push('/profile'),
                 icon: UserAvatar(
                   name: user.name,
                   image: user.avatarUrl,
-                  radius: 17,
+                  radius: 20,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          GlassCard(
-            blur: true,
-            tint: dark ? const Color(0xF02C2945) : const Color(0xF5EEECFF),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'NEEDS ATTENTION',
-                            style: TextStyle(
-                              fontSize: 10,
-                              letterSpacing: 1.2,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            summary.attention == 0
-                                ? 'You’re all caught up.'
-                                : '${summary.attention} items need your attention',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const DeskIllustration(kind: DeskArt.attention, size: 72),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      '${summary.overdue} overdue · ${summary.today} today · ${summary.dueSoon} soon',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => context.go('/due?filter=Attention'),
-                      child: const Text('Review now'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 14),
+          _AttentionCard(summary: summary),
           const SectionHeader(title: 'Due overview'),
           LayoutBuilder(
             builder: (context, c) {
-              final cols = c.maxWidth > 650 ? 4 : 2;
+              final cols = c.maxWidth >= 640 ? 4 : 2;
+              const gap = 10.0;
               final metrics = [
                 (
                   'Overdue',
@@ -171,52 +195,56 @@ class DashboardScreen extends ConsumerWidget {
                 (
                   'Today',
                   summary.today,
-                  Icons.today_outlined,
+                  Icons.today_rounded,
                   AppColors.warning,
                 ),
                 (
                   'This Week',
                   summary.thisWeek,
-                  Icons.date_range_outlined,
+                  Icons.date_range_rounded,
                   AppColors.primary,
                 ),
                 (
                   'Upcoming',
                   summary.upcoming,
-                  Icons.event_available_outlined,
+                  Icons.event_available_rounded,
                   const Color(0xFF318CBC),
                 ),
               ];
               return Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: gap,
+                runSpacing: gap,
                 children: [
                   for (final (label, count, icon, color) in metrics)
                     SizedBox(
-                      width: (c.maxWidth - 8 * (cols - 1)) / cols,
+                      width: (c.maxWidth - gap * (cols - 1)) / cols,
                       child: GlassCard(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         onTap: () => context.go(
                           '/due?filter=${Uri.encodeComponent(label)}',
                         ),
                         child: Row(
                           children: [
-                            IllustratedIcon(icon: icon, color: color, size: 30),
-                            const SizedBox(width: 8),
+                            IllustratedIcon(icon: icon, color: color, size: 40),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     '$count',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(fontSize: 24, height: 1.1),
                                   ),
                                   Text(
                                     label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w500,
                                       color: scheme.onSurfaceVariant,
                                     ),
                                   ),
@@ -231,116 +259,189 @@ class DashboardScreen extends ConsumerWidget {
               );
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Wrap(
-            spacing: 8,
-            runSpacing: 6,
+            spacing: 10,
+            runSpacing: 8,
             children: [
               if (Permissions.manage(user, org.id)) ...[
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    minimumSize: const Size(48, 46),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
                   onPressed: () => context.push('/due/new'),
-                  icon: const Icon(Icons.add_rounded, size: 18),
+                  icon: const Icon(Icons.add_rounded),
                   label: const Text('Add Due Item'),
                 ),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    minimumSize: const Size(48, 46),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
                   onPressed: () => context.push('/due/new?templates=true'),
-                  icon: const Icon(
-                    Icons.dashboard_customize_outlined,
-                    size: 18,
-                  ),
+                  icon: const Icon(Icons.dashboard_customize_outlined),
                   label: const Text('Templates'),
                 ),
               ],
               IconButton.outlined(
                 tooltip: 'Upload document',
+                style: AppIconButtonStyles.outlined(scheme),
                 onPressed: () => context.push('/documents?upload=true'),
-                icon: const Icon(Icons.upload_file_outlined, size: 20),
+                icon: const Icon(
+                  Icons.upload_file_outlined,
+                  size: AppSizes.iconMd,
+                ),
               ),
             ],
           ),
-          if (pinned.isNotEmpty) ...[
-            SectionHeader(
-              title: 'Pinned obligations',
-              action: 'View all',
-              onAction: () => context.go('/due?filter=Pinned'),
-            ),
-            for (final item in pinned.take(2)) DueItemCard(item: item),
-          ],
-          SectionHeader(
-            title: 'Upcoming deadlines',
-            action: 'View all',
-            onAction: () => context.go('/due'),
-          ),
-          if (next.isEmpty)
-            const EmptyState(message: 'No open obligations. Enjoy the clarity.')
-          else
-            LayoutBuilder(
-              builder: (context, c) => Wrap(
-                spacing: 12,
+          LayoutBuilder(
+            builder: (context, c) {
+              if (c.maxWidth < 900) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ...pinnedSection,
+                    ...upcomingSection,
+                    ...weekSection,
+                    ...completedSection,
+                  ],
+                );
+              }
+              // Wide screens: deadlines on the left, context on the right.
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final item in next.take(4))
-                    SizedBox(
-                      width: c.maxWidth > 700
-                          ? (c.maxWidth - 12) / 2
-                          : c.maxWidth,
-                      child: DueItemCard(item: item),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SectionHeader(
+                          title: 'Upcoming deadlines',
+                          action: 'View all',
+                          onAction: () => context.go('/due'),
+                        ),
+                        if (next.isEmpty)
+                          upcoming.single
+                        else
+                          for (final item in next.take(4))
+                            DueItemCard(item: item),
+                      ],
                     ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ...weekSection,
+                        ...pinnedSection,
+                        ...completedSection,
+                      ],
+                    ),
+                  ),
                 ],
-              ),
-            ),
-          SectionHeader(
-            title: 'Your next 7 days',
-            action: 'Calendar',
-            onAction: () => context.go('/calendar'),
+              );
+            },
           ),
-          GlassCard(
-            padding: const EdgeInsets.all(8),
-            child: LayoutBuilder(
-              builder: (context, c) => Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  for (var n = 0; n < 7; n++)
-                    SizedBox(
-                      width: (c.maxWidth - 24) / 7,
-                      child: _WeekDay(
-                        day: today.add(Duration(days: n)),
-                        items: next,
+        ],
+      ),
+    );
+  }
+}
+
+class _AttentionCard extends StatelessWidget {
+  final DashboardSummary summary;
+  const _AttentionCard({required this.summary});
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final accent = summary.overdue > 0
+        ? statusTextColor(context, DueStatus.overdue)
+        : scheme.primary;
+    return GlassCard(
+      padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Needs attention',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      summary.attention == 0
+                          ? 'You’re all caught up.'
+                          : '${summary.attention} items need your attention',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(fontSize: 22),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${summary.overdue} overdue · ${summary.today} today · ${summary.dueSoon} soon',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              const DeskIllustration(kind: DeskArt.attention, size: 64),
+            ],
           ),
-          SectionHeader(
-            title: 'Recently completed',
-            action: 'View history',
-            onAction: () => context.go('/due?filter=Completed'),
+          const SizedBox(height: 14),
+          Divider(color: scheme.outlineVariant),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Start with what is overdue.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(48, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                onPressed: () => context.go('/due?filter=Attention'),
+                child: const Text('Review now'),
+              ),
+            ],
           ),
-          if (completed.isEmpty)
-            const EmptyState(
-              title: 'Your history starts here.',
-              message:
-                  'Completed obligations and evidence will stay on record.',
-            )
-          else
-            for (final item in completed.take(2)) DueItemCard(item: item),
         ],
       ),
     );
@@ -350,45 +451,63 @@ class DashboardScreen extends ConsumerWidget {
 class _WeekDay extends StatelessWidget {
   final DateTime day;
   final List<DueItem> items;
-  const _WeekDay({required this.day, required this.items});
+  final bool isToday;
+  const _WeekDay({
+    required this.day,
+    required this.items,
+    this.isToday = false,
+  });
   @override
   Widget build(BuildContext context) {
     final count = items
         .where((i) => DueDates.daysLeft(i.dueDate, day) == 0)
         .length;
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       label: '${DateFormat('EEEE d MMMM').format(day)}, $count obligations',
       button: true,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
         onTap: () => context.go(
           '/calendar?date=${DateFormat('yyyy-MM-dd').format(day)}',
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isToday ? scheme.onSurface : null,
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          ),
           child: Column(
             children: [
               Text(
                 DateFormat('EEEEE').format(day),
                 style: TextStyle(
                   fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  color: isToday
+                      ? scheme.surface.withValues(alpha: .75)
+                      : scheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 '${day.day}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: isToday ? scheme.surface : scheme.onSurface,
+                ),
               ),
               const SizedBox(height: 6),
               Container(
-                width: 5,
-                height: 5,
+                width: 6,
+                height: 6,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: count > 0
-                      ? AppColors.primary
-                      : Theme.of(context).dividerColor,
+                      ? (isToday ? scheme.surface : scheme.primary)
+                      : Colors.transparent,
                 ),
               ),
             ],

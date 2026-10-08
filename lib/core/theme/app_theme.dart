@@ -8,7 +8,45 @@ abstract final class AppColors {
       danger = Color(0xFFEF4444);
 }
 
+/// Shared size tokens so icons, corners and touch targets stay consistent.
+abstract final class AppSizes {
+  static const iconXs = 16.0, iconSm = 18.0, iconMd = 20.0, iconLg = 24.0;
+  static const radiusSm = 10.0, radiusMd = 14.0, radiusLg = 18.0;
+  static const radiusXl = 24.0;
+
+  /// Width at which the bottom bar gives way to a navigation rail. Phones
+  /// (shortest side under this) keep the bottom bar even in landscape.
+  static const railBreakpoint = 600.0;
+
+  /// Width at which the rail shows labels beside the icons.
+  static const extendedRailBreakpoint = 1200.0;
+}
+
+/// Square-ish 48px icon buttons used beside headings and search fields.
+abstract final class AppIconButtonStyles {
+  static ButtonStyle filled() => IconButton.styleFrom(
+    backgroundColor: AppColors.primary,
+    foregroundColor: Colors.white,
+    minimumSize: const Size(48, 48),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+    ),
+  );
+  static ButtonStyle outlined(ColorScheme scheme) => IconButton.styleFrom(
+    minimumSize: const Size(48, 48),
+    backgroundColor: scheme.surfaceContainerLowest,
+    foregroundColor: scheme.onSurface,
+    side: BorderSide(color: scheme.outlineVariant),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+    ),
+  );
+}
+
+/// Calm, flat, warm-neutral surfaces with a single accent colour.
 abstract final class AppTheme {
+  static const serif = 'NotoSerif';
+
   static ThemeData theme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     final scheme =
@@ -17,73 +55,96 @@ abstract final class AppTheme {
           brightness: brightness,
         ).copyWith(
           primary: dark ? const Color(0xFFA9A3FF) : const Color(0xFF5C52DE),
-          surface: dark ? const Color(0xFF141823) : const Color(0xFFF8F9FC),
-          onSurface: dark ? const Color(0xFFF0F1F8) : const Color(0xFF202438),
+          // Page background.
+          surface: dark ? const Color(0xFF1C1B1A) : const Color(0xFFFAF9F5),
+          // Cards, inputs, sheets.
+          surfaceContainerLowest: dark
+              ? const Color(0xFF262624)
+              : const Color(0xFFFFFFFF),
+          surfaceContainerLow: dark
+              ? const Color(0xFF2A2927)
+              : const Color(0xFFF5F4EE),
+          surfaceContainer: dark
+              ? const Color(0xFF302F2C)
+              : const Color(0xFFF0EEE6),
+          surfaceContainerHigh: dark
+              ? const Color(0xFF363532)
+              : const Color(0xFFEAE8DF),
+          surfaceContainerHighest: dark
+              ? const Color(0xFF3D3C38)
+              : const Color(0xFFE3E1D7),
+          onSurface: dark ? const Color(0xFFF5F4EE) : const Color(0xFF1F1E1D),
           onSurfaceVariant: dark
-              ? const Color(0xFFAAB2C8)
-              : const Color(0xFF606A82),
+              ? const Color(0xFFA6A49B)
+              : const Color(0xFF6B6963),
+          outline: dark ? const Color(0xFF5A5852) : const Color(0xFFB9B6AB),
+          // Hairline borders and dividers.
+          outlineVariant: dark
+              ? const Color(0xFF353431)
+              : const Color(0xFFE6E3D9),
         );
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       brightness: brightness,
       fontFamily: 'Inter',
-      scaffoldBackgroundColor: Colors.transparent,
+      scaffoldBackgroundColor: scheme.surface,
+      splashFactory: InkSparkle.splashFactory,
     );
+    TextStyle? serifStyle(TextStyle? style, double size) => style?.copyWith(
+      fontFamily: serif,
+      fontSize: size,
+      fontWeight: FontWeight.w500,
+      letterSpacing: -.4,
+      height: 1.2,
+      color: scheme.onSurface,
+    );
+    OutlineInputBorder border(Color color, [double width = 1]) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          borderSide: BorderSide(color: color, width: width),
+        );
     return base.copyWith(
       textTheme: base.textTheme.copyWith(
-        headlineLarge: base.textTheme.headlineLarge?.copyWith(
-          fontSize: 28,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -1.2,
-        ),
-        headlineMedium: base.textTheme.headlineMedium?.copyWith(
-          fontSize: 24,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -.8,
-        ),
-        titleLarge: base.textTheme.titleLarge?.copyWith(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -.4,
-        ),
+        headlineLarge: serifStyle(base.textTheme.headlineLarge, 30),
+        headlineMedium: serifStyle(base.textTheme.headlineMedium, 26),
+        headlineSmall: serifStyle(base.textTheme.headlineSmall, 22),
+        titleLarge: serifStyle(base.textTheme.titleLarge, 20),
         titleMedium: base.textTheme.titleMedium?.copyWith(
+          fontSize: 15.5,
           fontWeight: FontWeight.w600,
+          letterSpacing: -.1,
         ),
-        bodyMedium: base.textTheme.bodyMedium?.copyWith(height: 1.35),
+        bodyMedium: base.textTheme.bodyMedium?.copyWith(height: 1.45),
         labelLarge: base.textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w600,
         ),
       ),
+      iconTheme: IconThemeData(
+        size: AppSizes.iconLg,
+        color: scheme.onSurfaceVariant,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: dark
-            ? Colors.white.withValues(alpha: .045)
-            : Colors.white.withValues(alpha: .8),
+        fillColor: scheme.surfaceContainerLowest,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: scheme.outline.withValues(alpha: .2)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: scheme.outline.withValues(alpha: .18)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: scheme.primary, width: 1.5),
-        ),
+        border: border(scheme.outlineVariant),
+        enabledBorder: border(scheme.outlineVariant),
+        focusedBorder: border(scheme.primary, 1.5),
+        hintStyle: TextStyle(color: scheme.onSurfaceVariant),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(48, 52),
+          backgroundColor: scheme.primary,
+          foregroundColor: dark ? const Color(0xFF1C1B1A) : Colors.white,
+          minimumSize: const Size(48, 50),
+          iconSize: AppSizes.iconMd,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
           ),
           textStyle: const TextStyle(
             fontFamily: 'Inter',
@@ -95,41 +156,153 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(48, 50),
+          backgroundColor: scheme.surfaceContainerLowest,
+          foregroundColor: scheme.onSurface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
           ),
-          side: BorderSide(color: scheme.outline.withValues(alpha: .22)),
+          side: BorderSide(color: scheme.outlineVariant),
+          iconSize: AppSizes.iconMd,
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: scheme.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 13.5,
+          ),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+        style: IconButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          iconSize: AppSizes.iconLg,
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: scheme.onSurfaceVariant,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        ),
+        minLeadingWidth: 24,
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: Colors.transparent,
+        indicatorColor: scheme.surfaceContainerHigh,
+        indicatorShape: const StadiumBorder(),
+        selectedIconTheme: IconThemeData(
+          color: scheme.onSurface,
+          size: AppSizes.iconLg,
+        ),
+        unselectedIconTheme: IconThemeData(
+          color: scheme.onSurfaceVariant,
+          size: AppSizes.iconLg,
+        ),
+        selectedLabelTextStyle: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurface,
+        ),
+        unselectedLabelTextStyle: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: scheme.inverseSurface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        textStyle: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12,
+          color: scheme.onInverseSurface,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: scheme.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusXl),
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: scheme.surfaceContainerLowest,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
       ),
       dividerTheme: DividerThemeData(
-        color: scheme.outline.withValues(alpha: .12),
-        space: 24,
+        color: scheme.outlineVariant,
+        space: 1,
+        thickness: 1,
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
         showDragHandle: true,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSizes.radiusXl),
+          ),
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
         foregroundColor: scheme.onSurface,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -.2,
+          color: scheme.onSurface,
+        ),
       ),
       chipTheme: base.chipTheme.copyWith(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: BorderSide(color: scheme.outline.withValues(alpha: .15)),
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        backgroundColor: scheme.surfaceContainerLowest,
+        selectedColor: scheme.onSurface,
+        secondarySelectedColor: scheme.onSurface,
+        checkmarkColor: scheme.surface,
+        labelStyle: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: WidgetStateColor.resolveWith(
+            (s) => s.contains(WidgetState.selected)
+                ? scheme.surface
+                : scheme.onSurface,
+          ),
+        ),
+        shape: const StadiumBorder(),
+        side: BorderSide(color: scheme.outlineVariant),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      ),
+      switchTheme: SwitchThemeData(
+        trackOutlineColor: WidgetStatePropertyAll(scheme.outlineVariant),
       ),
     );
   }

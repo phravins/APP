@@ -72,11 +72,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                           key: ValueKey(page),
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            GlassCard(
-                              blur: true,
-                              padding: const EdgeInsets.all(24),
-                              child: IllustratedIcon(icon: icon, size: 90),
-                            ),
+                            IllustratedIcon(icon: icon, size: 112),
                             const SizedBox(height: 24),
                             Text(
                               title,

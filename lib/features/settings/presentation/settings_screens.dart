@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/providers.dart';
 import '../../../core/config/environment.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
 import '../../../core/widgets/illustrations.dart';
@@ -142,9 +143,12 @@ class _Entry extends StatelessWidget {
   const _Entry(this.label, this.icon, this.path);
   @override
   Widget build(BuildContext context) => ListTile(
-    leading: IllustratedIcon(icon: icon, size: 32),
-    title: Text(label, style: const TextStyle(fontSize: 14)),
-    trailing: const Icon(Icons.chevron_right, size: 18),
+    leading: IllustratedIcon(icon: icon, size: 38),
+    title: Text(
+      label,
+      style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500),
+    ),
+    trailing: const Icon(Icons.chevron_right_rounded, size: AppSizes.iconMd),
     onTap: () => context.push(path),
   );
 }

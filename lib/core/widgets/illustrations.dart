@@ -52,6 +52,8 @@ class DeskIllustration extends StatelessWidget {
   }
 }
 
+/// A centred, tinted rounded tile with the glyph in the accent colour.
+/// The glyph is always 55% of the tile so icons look balanced at any size.
 class IllustratedIcon extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -60,42 +62,24 @@ class IllustratedIcon extends StatelessWidget {
     super.key,
     required this.icon,
     this.color = const Color(0xFF6C63FF),
-    this.size = 36,
+    this.size = 40,
   });
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: size,
-    height: size,
-    child: Stack(
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: size,
+      height: size,
       alignment: Alignment.center,
-      children: [
-        Positioned(
-          right: 1,
-          bottom: 1,
-          child: Container(
-            width: size * .77,
-            height: size * .77,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: .24),
-              borderRadius: BorderRadius.circular(7),
-            ),
-          ),
-        ),
-        Icon(
-          icon,
-          size: size * .62,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        Positioned(
-          top: 2,
-          right: 2,
-          child: Container(
-            width: 5,
-            height: 5,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-        ),
-      ],
-    ),
-  );
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: dark ? .22 : .12),
+        borderRadius: BorderRadius.circular(size * .3),
+      ),
+      child: Icon(
+        icon,
+        size: size * .55,
+        color: dark ? Color.lerp(color, Colors.white, .35) : color,
+      ),
+    );
+  }
 }

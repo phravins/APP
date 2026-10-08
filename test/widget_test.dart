@@ -30,6 +30,9 @@ Future<ProviderContainer> boot(
     'Inter',
   )..addFont(rootBundle.load('assets/fonts/Inter.ttf'))).load();
   await (FontLoader(
+    'NotoSerif',
+  )..addFont(rootBundle.load('assets/fonts/NotoSerif-Medium.ttf'))).load();
+  await (FontLoader(
     'MaterialIcons',
   )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   tester.view.physicalSize = size;

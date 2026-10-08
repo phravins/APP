@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/providers.dart';
 import '../../../core/utils/due_dates.dart';
 import '../../../core/utils/permissions.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/widgets/due_widgets.dart';
@@ -82,6 +83,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
                   subtitle: 'Every obligation. Clear ownership.',
                   trailing: Permissions.manage(user, org.id)
                       ? IconButton.filled(
+                          style: AppIconButtonStyles.filled(),
                           tooltip: 'Create Due Item',
                           onPressed: () => context.push('/due/new'),
                           icon: const Icon(Icons.add_rounded),
@@ -110,6 +112,9 @@ class _DueListState extends ConsumerState<DueListScreen> {
                     ),
                     const SizedBox(width: 10),
                     IconButton.outlined(
+                      style: AppIconButtonStyles.outlined(
+                        Theme.of(context).colorScheme,
+                      ),
                       tooltip: 'Filter DueItems',
                       onPressed: () async {
                         final result = await glassSheet<DueFilter>(

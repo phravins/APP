@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,34 +20,20 @@ class GlassCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
-    this.radius = 12,
+    this.radius = AppSizes.radiusLg,
     this.blur = false,
     this.onTap,
     this.tint,
   });
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    Widget content = Container(
+    final scheme = Theme.of(context).colorScheme;
+    // Flat card: surface colour plus a hairline border, no shadow.
+    return Container(
       decoration: BoxDecoration(
-        color:
-            tint ??
-            (dark
-                ? const Color(0xF01D2433)
-                : Colors.white.withValues(alpha: .94)),
+        color: tint ?? scheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: dark
-              ? Colors.white.withValues(alpha: .11)
-              : const Color(0xFFDCE2ED),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: dark ? .06 : .025),
-            blurRadius: 14,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Material(
         color: Colors.transparent,
@@ -59,16 +44,6 @@ class GlassCard extends StatelessWidget {
         ),
       ),
     );
-    if (blur) {
-      content = ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: content,
-        ),
-      );
-    }
-    return content;
   }
 }
 
@@ -76,41 +51,8 @@ class DueDeskBackground extends StatelessWidget {
   final Widget child;
   const DueDeskBackground({super.key, required this.child});
   @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? const [Color(0xFF121322), Color(0xFF0D1119), Color(0xFF101723)]
-              : const [Color(0xFFEBEDFC), Color(0xFFF4F6FA), Color(0xFFEAF2F8)],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -130,
-            right: -100,
-            child: Container(
-              width: 450,
-              height: 450,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: dark ? .13 : .09),
-                    AppColors.primary.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          child,
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      ColoredBox(color: Theme.of(context).colorScheme.surface, child: child);
 }
 
 class DueDeskScaffold extends StatelessWidget {
@@ -145,6 +87,13 @@ class DueDeskScaffold extends StatelessWidget {
                     )
                   : null,
               actions: actions,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Divider(
+                  height: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
             ),
       body: SafeArea(
         top: title == null,
@@ -160,90 +109,119 @@ class DueDeskScaffold extends StatelessWidget {
   );
 }
 
+/// Phones keep the bottom bar in every orientation; only tablets and
+/// desktops get the side rail.
+bool useNavigationRail(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  return size.shortestSide >= AppSizes.railBreakpoint &&
+      size.width >= AppSizes.railBreakpoint;
+}
+
 class GlassBottomNavigation extends StatelessWidget {
   final String location;
   const GlassBottomNavigation({super.key, required this.location});
   static const entries = [
-    ('/home', 'Home', Icons.space_dashboard_outlined),
-    ('/due', 'Due', Icons.task_alt_rounded),
-    ('/calendar', 'Calendar', Icons.calendar_month_outlined),
-    ('/documents', 'Docs', Icons.folder_outlined),
-    ('/more', 'More', Icons.grid_view_rounded),
+    (
+      '/home',
+      'Home',
+      Icons.space_dashboard_outlined,
+      Icons.space_dashboard_rounded,
+    ),
+    ('/due', 'Due', Icons.task_alt_rounded, Icons.check_circle_rounded),
+    (
+      '/calendar',
+      'Calendar',
+      Icons.calendar_month_outlined,
+      Icons.calendar_month_rounded,
+    ),
+    ('/documents', 'Docs', Icons.folder_outlined, Icons.folder_rounded),
+    ('/more', 'More', Icons.grid_view_outlined, Icons.grid_view_rounded),
   ];
+  static int indexOf(String location) =>
+      entries.indexWhere((e) => location.startsWith(e.$1)).clamp(0, 4);
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-      child: Center(
-        heightFactor: 1,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: GlassCard(
-            blur: true,
-            padding: const EdgeInsets.all(7),
-            radius: 14,
-            child: Row(
-              children: [
-                for (final (path, label, icon) in entries)
-                  Expanded(
-                    child: Semantics(
-                      selected: location.startsWith(path),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: () => context.go(path),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 2,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final selected = entries.indexWhere((e) => location.startsWith(e.$1));
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(top: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+              child: Row(
+                children: [
+                  for (final (i, (path, label, icon, activeIcon))
+                      in entries.indexed)
+                    Expanded(
+                      child: Semantics(
+                        selected: i == selected,
+                        button: true,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMd,
                           ),
-                          decoration: BoxDecoration(
-                            color: location.startsWith(path)
-                                ? AppColors.primary.withValues(alpha: .13)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                icon,
-                                size: 23,
-                                color: location.startsWith(path)
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: location.startsWith(path)
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  color: location.startsWith(path)
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                          onTap: () => context.go(path),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  curve: Curves.easeOutCubic,
+                                  width: 52,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: i == selected
+                                        ? scheme.surfaceContainerHigh
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Icon(
+                                    i == selected ? activeIcon : icon,
+                                    size: AppSizes.iconMd + 2,
+                                    color: i == selected
+                                        ? scheme.onSurface
+                                        : scheme.onSurfaceVariant,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 3),
+                                Text(
+                                  label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: i == selected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: i == selected
+                                        ? scheme.onSurface
+                                        : scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class AppShell extends ConsumerWidget {
@@ -258,6 +236,8 @@ class AppShell extends ConsumerWidget {
             .value
             ?.contains(ConnectivityResult.none) ??
         false;
+    final rail = useNavigationRail(context);
+    final scheme = Theme.of(context).colorScheme;
     return DueDeskBackground(
       child: Scaffold(
         body: SafeArea(
@@ -275,50 +255,82 @@ class AppShell extends ConsumerWidget {
                   ),
                 ),
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth < 900) return child;
-                    return Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
-                          child: GlassCard(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: NavigationRail(
-                              backgroundColor: Colors.transparent,
-                              leading: const Padding(
-                                padding: EdgeInsets.only(bottom: 20),
-                                child: BrandMark(size: 36),
-                              ),
-                              labelType: NavigationRailLabelType.all,
-                              selectedIndex: GlassBottomNavigation.entries
-                                  .indexWhere((e) => location.startsWith(e.$1))
-                                  .clamp(0, 4),
-                              onDestinationSelected: (i) => context.go(
-                                GlassBottomNavigation.entries[i].$1,
-                              ),
-                              destinations: [
-                                for (final e in GlassBottomNavigation.entries)
-                                  NavigationRailDestination(
-                                    icon: Icon(e.$3),
-                                    label: Text(e.$2),
+                child: !rail
+                    ? child
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final extended =
+                              constraints.maxWidth >=
+                              AppSizes.extendedRailBreakpoint;
+                          return Row(
+                            children: [
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: scheme.surfaceContainerLow,
+                                  border: Border(
+                                    right: BorderSide(
+                                      color: scheme.outlineVariant,
+                                    ),
                                   ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Expanded(child: child),
-                      ],
-                    );
-                  },
-                ),
+                                ),
+                                child: NavigationRail(
+                                  extended: extended,
+                                  minExtendedWidth: 220,
+                                  groupAlignment: -1,
+                                  leading: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      0,
+                                      12,
+                                      0,
+                                      20,
+                                    ),
+                                    child: extended
+                                        ? Row(
+                                            children: [
+                                              const BrandMark(size: 32),
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                'DueDesk',
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.titleLarge,
+                                              ),
+                                            ],
+                                          )
+                                        : const BrandMark(size: 32),
+                                  ),
+                                  labelType: extended
+                                      ? NavigationRailLabelType.none
+                                      : NavigationRailLabelType.all,
+                                  selectedIndex: GlassBottomNavigation.indexOf(
+                                    location,
+                                  ),
+                                  onDestinationSelected: (i) => context.go(
+                                    GlassBottomNavigation.entries[i].$1,
+                                  ),
+                                  destinations: [
+                                    for (final e
+                                        in GlassBottomNavigation.entries)
+                                      NavigationRailDestination(
+                                        icon: Icon(e.$3),
+                                        selectedIcon: Icon(e.$4),
+                                        label: Text(e.$2),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(child: child),
+                            ],
+                          );
+                        },
+                      ),
               ),
             ],
           ),
         ),
-        bottomNavigationBar: MediaQuery.sizeOf(context).width < 900
-            ? GlassBottomNavigation(location: location)
-            : null,
+        bottomNavigationBar: rail
+            ? null
+            : GlassBottomNavigation(location: location),
       ),
     );
   }
@@ -366,8 +378,8 @@ class PrimaryButton extends StatelessWidget {
           ),
           const SizedBox(width: 10),
         ] else if (icon != null) ...[
-          Icon(icon, size: 19),
-          const SizedBox(width: 9),
+          Icon(icon, size: AppSizes.iconMd),
+          const SizedBox(width: 8),
         ],
         Flexible(child: Text(label, textAlign: TextAlign.center)),
       ],
@@ -400,7 +412,7 @@ class SecondaryButton extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           )
         else if (icon != null)
-          Icon(icon, size: 18),
+          Icon(icon, size: AppSizes.iconMd),
         if (loading || icon != null) const SizedBox(width: 8),
         Flexible(child: Text(label)),
       ],
@@ -507,14 +519,27 @@ class SectionHeader extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 18, bottom: 10),
+    padding: const EdgeInsets.only(top: 22, bottom: 8),
     child: Row(
       children: [
         Expanded(
-          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         if (action != null)
-          TextButton(onPressed: onAction, child: Text(action!)),
+          TextButton(
+            onPressed: onAction,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            child: Text(action!),
+          ),
       ],
     ),
   );
@@ -602,7 +627,7 @@ class LoadingSkeleton extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
             ),
           ),
       ],
@@ -643,10 +668,10 @@ class PageBody extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: EdgeInsets.fromLTRB(
-          c.maxWidth > 700 ? 24 : 16,
+          c.maxWidth >= 1000 ? 32 : (c.maxWidth > 700 ? 24 : 16),
           14,
-          c.maxWidth > 700 ? 24 : 16,
-          28,
+          c.maxWidth >= 1000 ? 32 : (c.maxWidth > 700 ? 24 : 16),
+          32,
         ),
         children: eager
             ? [
@@ -688,7 +713,7 @@ Future<T?> glassSheet<T>(BuildContext context, Widget child) =>
             maxHeight: MediaQuery.sizeOf(context).height * .9,
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 4, 24, 28),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
             child: child,
           ),
         ),

@@ -40,10 +40,10 @@ class DueStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = statusColor(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         status.label,
@@ -107,51 +107,78 @@ class DueItemCard extends ConsumerWidget {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final pinned = ref.watch(pinnedItemsProvider).contains(item.id);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
         onTap: () => context.push('/due/${item.id}'),
-        padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 6, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IllustratedIcon(
                   icon: categoryIcon(item.categoryName),
                   color: statusColor(status),
-                  size: 32,
+                  size: 40,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    item.categoryName.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: .8,
-                      color: muted,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              item.categoryName.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: .8,
+                                color: muted,
+                              ),
+                            ),
+                            if (item.priority == Priority.high ||
+                                item.priority == Priority.critical)
+                              Text(
+                                '• ${item.priority.label}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: item.priority == Priority.critical
+                                      ? statusTextColor(
+                                          context,
+                                          DueStatus.overdue,
+                                        )
+                                      : muted,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          item.title,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                if (item.priority == Priority.high ||
-                    item.priority == Priority.critical)
-                  Text(
-                    item.priority.label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: item.priority == Priority.critical
-                          ? statusTextColor(context, DueStatus.overdue)
-                          : muted,
-                    ),
-                  ),
                 IconButton(
                   tooltip: pinned ? 'Unpin obligation' : 'Pin obligation',
                   isSelected: pinned,
-                  icon: const Icon(Icons.bookmark_border_rounded, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(
+                    Icons.bookmark_border_rounded,
+                    size: AppSizes.iconMd,
+                  ),
                   selectedIcon: Icon(
                     Icons.bookmark_rounded,
-                    size: 20,
+                    size: AppSizes.iconMd,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   onPressed: () => runAction(
@@ -162,15 +189,26 @@ class DueItemCard extends ConsumerWidget {
                 ),
               ],
             ),
-            Text(item.title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
             Wrap(
-              spacing: 8,
+              spacing: 10,
               runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(
-                  DueDates.format(item.dueDate, year: true),
-                  style: TextStyle(fontSize: 12, color: muted),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.event_outlined,
+                      size: AppSizes.iconXs,
+                      color: muted,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      DueDates.format(item.dueDate, year: true),
+                      style: TextStyle(fontSize: 12, color: muted),
+                    ),
+                  ],
                 ),
                 Text(
                   item.isClosed
@@ -184,55 +222,66 @@ class DueItemCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final owner = Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    UserAvatar(name: item.assignedToName, radius: 11),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        item.assignedToName,
-                        style: TextStyle(fontSize: 12, color: muted),
-                        overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final owner = Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      UserAvatar(name: item.assignedToName, radius: 12),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          item.assignedToName,
+                          style: TextStyle(fontSize: 12, color: muted),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
-                );
-                final meta = Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (item.documentCount > 0) ...[
-                      Icon(Icons.attach_file_rounded, size: 14, color: muted),
-                      Text(
-                        '${item.documentCount}',
-                        style: TextStyle(fontSize: 11, color: muted),
-                      ),
-                      const SizedBox(width: 8),
                     ],
-                    if (item.frequency != Frequency.oneTime) ...[
-                      Icon(Icons.repeat_rounded, size: 14, color: muted),
-                      const SizedBox(width: 8),
-                    ],
-                    DueStatusBadge(status: status),
-                  ],
-                );
-                if (MediaQuery.textScalerOf(context).scale(14) > 18) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [owner, const SizedBox(height: 8), meta],
                   );
-                }
-                return Row(
-                  children: [
-                    Expanded(child: owner),
-                    const SizedBox(width: 6),
-                    meta,
-                  ],
-                );
-              },
+                  final meta = Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (item.documentCount > 0) ...[
+                        Icon(
+                          Icons.attach_file_rounded,
+                          size: AppSizes.iconXs,
+                          color: muted,
+                        ),
+                        Text(
+                          '${item.documentCount}',
+                          style: TextStyle(fontSize: 11, color: muted),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (item.frequency != Frequency.oneTime) ...[
+                        Icon(
+                          Icons.repeat_rounded,
+                          size: AppSizes.iconXs,
+                          color: muted,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      DueStatusBadge(status: status),
+                    ],
+                  );
+                  if (MediaQuery.textScalerOf(context).scale(14) > 18) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [owner, const SizedBox(height: 8), meta],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: owner),
+                      const SizedBox(width: 6),
+                      meta,
+                    ],
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -264,7 +313,10 @@ class CompanySwitcher extends ConsumerWidget {
                       <Organisation>[])
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.business_outlined),
+                  leading: const IllustratedIcon(
+                    icon: Icons.business_rounded,
+                    size: 38,
+                  ),
                   title: Text(company.name),
                   subtitle: Text(
                     ref.watch(currentUserProvider).roleIn(company.id)?.label ??
@@ -305,7 +357,10 @@ class CompanySwitcher extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 5),
-            const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: AppSizes.iconSm,
+            ),
           ],
         ),
       ),
