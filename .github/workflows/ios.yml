@@ -1,0 +1,82 @@
+name: iOS build and simulator
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'assets/**'
+      - 'test/**'
+      - 'integration_test/**'
+      - 'pubspec.*'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'assets/**'
+      - 'test/**'
+      - 'integration_test/**'
+      - 'pubspec.*'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - name: Check Xcode and resolve packages
+        run: |
+          xcodebuild -version
+          flutter pub get
+      - name: Analyze and test
+        run: |
+          flutter analyze
+          flutter test
+      - name: Build iPhone device binary without signing
+        run: flutter build ios --release --no-codesign --dart-define=APP_ENV=demo
+      - name: Build simulator application
+        run: flutter build ios --simulator --debug --dart-define=APP_ENV=demo
+      - name: Package simulator app
+        run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app DueDesk-iOS-Simulator.zip
+      - name: Boot an available iPhone simulator
+        id: simulator
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))['devices']
+          phones = [d for runtime, entries in devices.items() if 'iOS' in runtime for d in entries if d['name'].startswith('iPhone') and d['isAvailable']]
+          if not phones:
+              raise SystemExit('No iPhone simulator runtime is installed on this runner.')
+          device = phones[0]
+          if device['state'] != 'Booted':
+              subprocess.run(['xcrun', 'simctl', 'boot', device['udid']], check=True)
+          subprocess.run(['xcrun', 'simctl', 'bootstatus', device['udid'], '-b'], check=True)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('udid=' + device['udid'] + '\n')
+          PY
+      - name: Exercise real iOS plugins and app navigation
+        env:
+          SIMULATOR_ID: ${{ steps.simulator.outputs.udid }}
+        run: flutter test integration_test/ios_smoke_test.dart -d "$SIMULATOR_ID" --dart-define=APP_ENV=demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DueDesk-iOS-Simulator
+          path: DueDesk-iOS-Simulator.zip
+          retention-days: 14

@@ -164,7 +164,7 @@ Release builds use `android/key.properties` when supplied. The app does not reus
 
 Tests cover civil dates/timezones, urgency, recurrence, search/filters, summaries, persistence, permissions, concurrency, document validation, authentication, widgets, and guarded navigation. Widget tests load the bundled font and exercise phone/tablet layouts. See [docs/VERIFICATION.md](docs/VERIFICATION.md) for the final run results.
 
-For iOS on macOS:
+For iOS on macOS (iPhone and iPad, iOS 15+; Swift Package Manager):
 
 ```bash
 flutter pub get

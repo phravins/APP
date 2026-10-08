@@ -3,10 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>NSPhotoLibraryUsageDescription</key>
-<string>Select a profile photo, company logo, or supporting evidence.</string>
-<key>CFBundleURLTypes</key>
-<array><dict><key>CFBundleURLSchemes</key><array><string>duedesk</string></array></dict></array>
-<key>CADisableMinimumFrameDurationOnPhone</key>
+	<string>Select a profile photo, company logo, or supporting evidence.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>duedesk</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>app.duedesk.duedesk</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
+	</array>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
