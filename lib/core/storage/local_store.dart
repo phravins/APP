@@ -9,6 +9,15 @@ abstract interface class LocalStore {
   Future<void> putFile(String id, Uint8List bytes);
   Future<Uint8List?> getFile(String id);
   Future<void> removeFile(String id);
+
+  /// Where the data lives, shown to the user in Settings › Storage.
+  String get location;
+
+  /// Approximate bytes used by records and attached files.
+  Future<int> sizeInBytes();
+
+  /// Removes every record and file this store holds.
+  Future<void> clear();
 }
 
 class HiveLocalStore implements LocalStore {
@@ -35,6 +44,18 @@ class HiveLocalStore implements LocalStore {
 
   @override
   Future<void> removeFile(String id) => files.delete(id);
+  @override
+  Future<void> clear() async {
+    await records.clear();
+    await files.clear();
+  }
+
+  @override
+  String get location => records.path ?? 'This browser';
+  @override
+  Future<int> sizeInBytes() async =>
+      (records.get('workspace-v1')?.length ?? 0) +
+      files.values.fold<int>(0, (sum, b) => sum + b.length);
 }
 
 class MemoryLocalStore implements LocalStore {
@@ -58,4 +79,16 @@ class MemoryLocalStore implements LocalStore {
   Future<void> removeFile(String id) async {
     files.remove(id);
   }
+
+  @override
+  Future<void> clear() async {
+    data = null;
+    files.clear();
+  }
+
+  @override
+  String get location => 'Memory';
+  @override
+  Future<int> sizeInBytes() async =>
+      files.values.fold<int>(0, (sum, b) => sum + b.length);
 }

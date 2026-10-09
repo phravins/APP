@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
-import '../core/api/api_client.dart';
 import '../core/config/environment.dart';
+import '../core/storage/device_store.dart';
 import '../core/storage/local_store.dart';
 import 'app.dart';
 import 'providers.dart';
@@ -18,21 +17,20 @@ Future<void> bootstrap() async {
     tz.initializeTimeZones();
     await Hive.initFlutter();
     final prefs = await SharedPreferences.getInstance();
-    final records = await Hive.openBox<String>(
-      '${AppConfig.environmentName}-workspace',
+    final cache = HiveLocalStore(
+      await Hive.openBox<String>('${AppConfig.environmentName}-server-cache'),
+      await Hive.openBox<List<int>>(
+        '${AppConfig.environmentName}-server-files',
+      ),
     );
-    final files = await Hive.openBox<List<int>>(
-      '${AppConfig.environmentName}-files',
-    );
+    final device = await openDeviceStore();
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     runApp(
       ProviderScope(
         overrides: [
           preferencesProvider.overrideWithValue(prefs),
-          localStoreProvider.overrideWithValue(HiveLocalStore(records, files)),
-          apiClientProvider.overrideWithValue(
-            ApiClient(TokenStore(const FlutterSecureStorage())),
-          ),
+          deviceStoreProvider.overrideWithValue(device),
+          serverCacheProvider.overrideWithValue(cache),
         ],
         child: const DueDeskApp(),
       ),

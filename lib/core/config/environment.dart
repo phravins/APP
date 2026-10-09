@@ -9,17 +9,20 @@ abstract final class AppConfig {
       AppEnvironment.values.byName(environmentName);
   static const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
   static bool get isDemo => environment == AppEnvironment.demo;
+
+  /// A build may ship with a default server address. When it does, the
+  /// address must be well formed, and production builds must use HTTPS.
+  /// Without one, people choose device storage or enter their own server.
   static void validate() {
-    if (!isDemo) {
-      final uri = Uri.tryParse(apiBaseUrl);
-      if (uri == null ||
-          !uri.hasAuthority ||
-          !['https', 'http'].contains(uri.scheme)) {
-        throw StateError('Set a valid API_BASE_URL with --dart-define.');
-      }
-      if (environment == AppEnvironment.production && uri.scheme != 'https') {
-        throw StateError('Production requires HTTPS.');
-      }
+    if (apiBaseUrl.isEmpty) return;
+    final uri = Uri.tryParse(apiBaseUrl);
+    if (uri == null ||
+        !uri.hasAuthority ||
+        !['https', 'http'].contains(uri.scheme)) {
+      throw StateError('Set a valid API_BASE_URL with --dart-define.');
+    }
+    if (environment == AppEnvironment.production && uri.scheme != 'https') {
+      throw StateError('Production requires HTTPS.');
     }
   }
 }

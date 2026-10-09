@@ -98,6 +98,15 @@ class DueFilter {
     this.from,
     this.to,
   });
+
+  /// True when any sheet filter (not the search box or segment) is set.
+  bool get active =>
+      status != null ||
+      categoryId != null ||
+      assigneeId != null ||
+      priority != null ||
+      from != null ||
+      to != null;
   List<DueItem> apply(List<DueItem> items, DateTime today, String userId) {
     final q = query.trim().toLowerCase();
     return items.where((i) {

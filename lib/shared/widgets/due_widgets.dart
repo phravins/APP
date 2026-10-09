@@ -103,184 +103,123 @@ class DueItemCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final today = ref.watch(todayProvider),
-        status = DueDates.status(item, ref.watch(todayProvider));
+        status = DueDates.status(item, today);
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final pinned = ref.watch(pinnedItemsProvider).contains(item.id);
+    final critical = item.priority == Priority.critical;
+    final meta = TextStyle(fontSize: 12, color: muted, height: 1.35);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 8),
       child: GlassCard(
         onTap: () => context.push('/due/${item.id}'),
-        padding: const EdgeInsets.fromLTRB(14, 12, 6, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(12, 10, 2, 10),
+        child: Row(
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IllustratedIcon(
-                  icon: categoryIcon(item.categoryName),
-                  color: statusColor(status),
-                  size: 40,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 1),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            IllustratedIcon(
+              icon: categoryIcon(item.categoryName),
+              color: statusColor(status),
+              size: 36,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text.rich(
+                    TextSpan(
                       children: [
-                        Wrap(
-                          spacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              item.categoryName.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: .8,
+                        TextSpan(
+                          text: item.isClosed
+                              ? status.label
+                              : DueDates.relative(item.dueDate, today),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: statusTextColor(context, status),
+                          ),
+                        ),
+                        TextSpan(
+                          text:
+                              ' · ${DueDates.format(item.dueDate, year: true)}',
+                        ),
+                      ],
+                    ),
+                    style: meta,
+                  ),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        if (critical)
+                          TextSpan(
+                            text: 'Critical · ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: statusTextColor(
+                                context,
+                                DueStatus.overdue,
+                              ),
+                            ),
+                          ),
+                        TextSpan(
+                          text: '${item.categoryName} · ${item.assignedToName}',
+                        ),
+                        if (item.documentCount > 0) ...[
+                          const TextSpan(text: '  '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Icon(
+                              Icons.attach_file_rounded,
+                              size: 13,
+                              color: muted,
+                            ),
+                          ),
+                          TextSpan(text: '${item.documentCount}'),
+                        ],
+                        if (item.frequency != Frequency.oneTime) ...[
+                          const TextSpan(text: '  '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Semantics(
+                              label: 'Repeats ${item.frequency.label}',
+                              child: Icon(
+                                Icons.repeat_rounded,
+                                size: 13,
                                 color: muted,
                               ),
                             ),
-                            if (item.priority == Priority.high ||
-                                item.priority == Priority.critical)
-                              Text(
-                                '• ${item.priority.label}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: item.priority == Priority.critical
-                                      ? statusTextColor(
-                                          context,
-                                          DueStatus.overdue,
-                                        )
-                                      : muted,
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          item.title,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
+                          ),
+                        ],
                       ],
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: meta,
                   ),
-                ),
-                IconButton(
-                  tooltip: pinned ? 'Unpin obligation' : 'Pin obligation',
-                  isSelected: pinned,
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(
-                    Icons.bookmark_border_rounded,
-                    size: AppSizes.iconMd,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.bookmark_rounded,
-                    size: AppSizes.iconMd,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  onPressed: () => runAction(
-                    context,
-                    () =>
-                        ref.read(pinnedItemsProvider.notifier).toggle(item.id),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 10,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.event_outlined,
-                      size: AppSizes.iconXs,
-                      color: muted,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      DueDates.format(item.dueDate, year: true),
-                      style: TextStyle(fontSize: 12, color: muted),
-                    ),
-                  ],
-                ),
-                Text(
-                  item.isClosed
-                      ? status.label
-                      : DueDates.relative(item.dueDate, today),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: statusTextColor(context, status),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final owner = Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      UserAvatar(name: item.assignedToName, radius: 12),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          item.assignedToName,
-                          style: TextStyle(fontSize: 12, color: muted),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  );
-                  final meta = Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (item.documentCount > 0) ...[
-                        Icon(
-                          Icons.attach_file_rounded,
-                          size: AppSizes.iconXs,
-                          color: muted,
-                        ),
-                        Text(
-                          '${item.documentCount}',
-                          style: TextStyle(fontSize: 11, color: muted),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      if (item.frequency != Frequency.oneTime) ...[
-                        Icon(
-                          Icons.repeat_rounded,
-                          size: AppSizes.iconXs,
-                          color: muted,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      DueStatusBadge(status: status),
-                    ],
-                  );
-                  if (MediaQuery.textScalerOf(context).scale(14) > 18) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [owner, const SizedBox(height: 8), meta],
-                    );
-                  }
-                  return Row(
-                    children: [
-                      Expanded(child: owner),
-                      const SizedBox(width: 6),
-                      meta,
-                    ],
-                  );
-                },
+            IconButton(
+              tooltip: pinned ? 'Unpin obligation' : 'Pin obligation',
+              isSelected: pinned,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(
+                Icons.bookmark_border_rounded,
+                size: AppSizes.iconMd,
+              ),
+              selectedIcon: Icon(
+                Icons.bookmark_rounded,
+                size: AppSizes.iconMd,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              onPressed: () => runAction(
+                context,
+                () => ref.read(pinnedItemsProvider.notifier).toggle(item.id),
               ),
             ),
           ],
@@ -379,16 +318,16 @@ class ScreenHeading extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.only(bottom: 12),
     child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
               Text(
                 subtitle,
                 style: TextStyle(

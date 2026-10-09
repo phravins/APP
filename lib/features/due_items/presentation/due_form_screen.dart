@@ -10,7 +10,6 @@ import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
 import '../../../shared/models/models.dart';
 import '../domain/due_template.dart';
-import '../../../core/widgets/illustrations.dart';
 import '../../../shared/widgets/due_widgets.dart';
 
 class DueFormScreen extends ConsumerStatefulWidget {
@@ -227,271 +226,264 @@ class _DueFormState extends ConsumerState<DueFormScreen> {
                 child: PageBody(
                   eager: true,
                   children: [
+                    if (widget.id == null) ...[
+                      Text(
+                        widget.showTemplates
+                            ? 'Pick a template to start'
+                            : 'Start from a template',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final template in DueTemplate.all)
+                            ActionChip(
+                              avatar: Icon(
+                                categoryIcon(template.category),
+                                size: 16,
+                              ),
+                              label: Text(template.title),
+                              tooltip: template.frequency.label,
+                              onPressed: () async {
+                                if (title.text.trim().isNotEmpty &&
+                                    !await confirmAction(
+                                      context,
+                                      'Apply this template?',
+                                      'This replaces the title, description, category, frequency and priority. Your dates, assignee and attachments stay the same.',
+                                      confirm: 'Apply template',
+                                    )) {
+                                  return;
+                                }
+                                if (mounted) applyTemplate(template);
+                              },
+                            ),
+                        ],
+                      ),
+                    ],
+                    const _FormSection('Basics'),
+                    GlassTextField(
+                      controller: title,
+                      label: 'Title',
+                      required: true,
+                    ),
+                    GlassTextField(
+                      controller: description,
+                      label: 'Description',
+                      maxLines: 2,
+                    ),
+                    _FieldPair(
+                      GlassDropdown<String>(
+                        label: 'Category',
+                        value: category,
+                        required: true,
+                        options: {
+                          for (final c
+                              in ref
+                                  .watch(categoriesProvider)
+                                  .where((c) => c.active || c.id == category))
+                            c.id: c.name,
+                        },
+                        onChanged: (v) => setState(() => category = v),
+                      ),
+                      GlassDropdown<String>(
+                        label: 'Assign to',
+                        required: true,
+                        value: assignee,
+                        options: {
+                          for (final u
+                              in ref
+                                  .watch(teamProvider)
+                                  .where((u) => u.roleIn(org.id) != null))
+                            u.id: u.name,
+                        },
+                        onChanged: (v) => setState(() => assignee = v),
+                      ),
+                    ),
+                    const _FormSection('Schedule'),
+                    _FieldPair(
+                      DateField(
+                        label: 'Due date *',
+                        value: due,
+                        onChanged: (v) => setState(() => due = v),
+                      ),
+                      DateField(
+                        label: 'Start date',
+                        value: start,
+                        onChanged: (v) => setState(() => start = v),
+                        onClear: () => setState(() => start = null),
+                      ),
+                      gap: 12,
+                    ),
+                    const SizedBox(height: 12),
+                    GlassDropdown<Frequency>(
+                      label: 'Frequency',
+                      value: frequency,
+                      options: {for (final f in Frequency.values) f: f.label},
+                      onChanged: (v) => setState(() => frequency = v!),
+                    ),
+                    if (frequency == Frequency.custom)
+                      GlassTextField(
+                        controller: custom,
+                        label: 'Repeat every (days)',
+                        keyboardType: TextInputType.number,
+                        validator: (v) => (int.tryParse(v ?? '') ?? 0) < 1
+                            ? 'Enter a positive number of days.'
+                            : null,
+                      ),
                     Text(
-                      widget.id == null
-                          ? 'Give your next deadline a home.'
-                          : 'Keep everyone on the same page.',
+                      'Priority',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final p in Priority.values)
+                          ChoiceChip(
+                            showCheckmark: false,
+                            label: Text(p.label),
+                            selected: priority == p,
+                            onSelected: (_) => setState(() => priority = p),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const _FormSection('Reminders'),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final d in [30, 15, 7, 3, 1, 0])
+                          FilterChip(
+                            label: Text(
+                              d == 0
+                                  ? 'On due date'
+                                  : '$d ${d == 1 ? 'day' : 'days'} before',
+                            ),
+                            selected: reminders.contains(d),
+                            onSelected: (v) => setState(
+                              () => v ? reminders.add(d) : reminders.remove(d),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Theme(
+                      data: Theme.of(
+                        context,
+                      ).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: EdgeInsets.zero,
+                        initiallyExpanded:
+                            reference.text.isNotEmpty ||
+                            authority.text.isNotEmpty ||
+                            amount.text.isNotEmpty ||
+                            notes.text.isNotEmpty,
+                        title: Text(
+                          'More details',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        subtitle: const Text(
+                          'Reference, authority, amount and notes',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        children: [
+                          _FieldPair(
+                            GlassTextField(
+                              controller: reference,
+                              label: 'Reference number',
+                            ),
+                            GlassTextField(
+                              controller: authority,
+                              label: 'Authority',
+                            ),
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: GlassTextField(
+                                  controller: amount,
+                                  label: 'Amount',
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) return null;
+                                    final value = double.tryParse(v);
+                                    return value == null ||
+                                            !value.isFinite ||
+                                            value < 0
+                                        ? 'Enter a valid positive amount.'
+                                        : null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                flex: 2,
+                                child: GlassDropdown<String>(
+                                  label: 'Currency',
+                                  value: currency,
+                                  options: const {
+                                    'INR': 'INR',
+                                    'USD': 'USD',
+                                    'GBP': 'GBP',
+                                    'EUR': 'EUR',
+                                  },
+                                  onChanged: (v) =>
+                                      setState(() => currency = v!),
+                                ),
+                              ),
+                            ],
+                          ),
+                          GlassTextField(
+                            controller: notes,
+                            label: 'Notes',
+                            maxLines: 3,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const _FormSection('Documents'),
+                    for (final f in files)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.description_outlined),
+                        title: Text(f.name),
+                        subtitle: Text(
+                          '${(f.size / 1024).toStringAsFixed(1)} KB',
+                        ),
+                        trailing: IconButton(
+                          tooltip: 'Remove selection',
+                          icon: const Icon(Icons.close),
+                          onPressed: () => setState(() => files.remove(f)),
+                        ),
+                      ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: pick,
+                        icon: const Icon(Icons.attach_file, size: 18),
+                        label: const Text('Attach documents'),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'PDF, images, Word, or text · up to 20 MB each',
                       style: TextStyle(
+                        fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    if (widget.id == null) ...[
-                      const SizedBox(height: 12),
-                      GlassCard(
-                        padding: EdgeInsets.zero,
-                        child: ExpansionTile(
-                          initiallyExpanded: widget.showTemplates,
-                          leading: const IllustratedIcon(
-                            icon: Icons.dashboard_customize_outlined,
-                          ),
-                          title: const Text('Start from a template'),
-                          subtitle: const Text('Filing, renewal or contract'),
-                          children: [
-                            for (final template in DueTemplate.all)
-                              ListTile(
-                                leading: IllustratedIcon(
-                                  icon: categoryIcon(template.category),
-                                ),
-                                title: Text(template.title),
-                                subtitle: Text(template.frequency.label),
-                                trailing: const Icon(Icons.add_rounded),
-                                onTap: () async {
-                                  if (title.text.trim().isNotEmpty &&
-                                      !await confirmAction(
-                                        context,
-                                        'Apply this template?',
-                                        'This replaces the title, description, category, frequency and priority. Your dates, assignee and attachments stay the same.',
-                                        confirm: 'Apply template',
-                                      )) {
-                                    return;
-                                  }
-                                  if (mounted) applyTemplate(template);
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SectionHeader(title: '01  Basic information'),
-                    GlassCard(
-                      child: Column(
-                        children: [
-                          GlassTextField(
-                            controller: title,
-                            label: 'Title',
-                            required: true,
-                          ),
-                          GlassTextField(
-                            controller: description,
-                            label: 'Description',
-                            maxLines: 3,
-                          ),
-                          GlassDropdown<String>(
-                            label: 'Category',
-                            value: category,
-                            required: true,
-                            options: {
-                              for (final c
-                                  in ref
-                                      .watch(categoriesProvider)
-                                      .where(
-                                        (c) => c.active || c.id == category,
-                                      ))
-                                c.id: c.name,
-                            },
-                            onChanged: (v) => setState(() => category = v),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SectionHeader(title: '02  Schedule'),
-                    GlassCard(
-                      child: Column(
-                        children: [
-                          DateField(
-                            label: 'Due date *',
-                            value: due,
-                            onChanged: (v) => setState(() => due = v),
-                          ),
-                          const SizedBox(height: 16),
-                          DateField(
-                            label: 'Start date',
-                            value: start,
-                            onChanged: (v) => setState(() => start = v),
-                            onClear: () => setState(() => start = null),
-                          ),
-                          const SizedBox(height: 16),
-                          GlassDropdown<Frequency>(
-                            label: 'Frequency',
-                            value: frequency,
-                            options: {
-                              for (final f in Frequency.values) f: f.label,
-                            },
-                            onChanged: (v) => setState(() => frequency = v!),
-                          ),
-                          if (frequency == Frequency.custom)
-                            GlassTextField(
-                              controller: custom,
-                              label: 'Repeat every (days)',
-                              keyboardType: TextInputType.number,
-                              validator: (v) => (int.tryParse(v ?? '') ?? 0) < 1
-                                  ? 'Enter a positive number of days.'
-                                  : null,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SectionHeader(title: '03  Responsibility'),
-                    GlassCard(
-                      child: Column(
-                        children: [
-                          GlassDropdown<String>(
-                            label: 'Assign to',
-                            required: true,
-                            value: assignee,
-                            options: {
-                              for (final u
-                                  in ref
-                                      .watch(teamProvider)
-                                      .where((u) => u.roleIn(org.id) != null))
-                                u.id: u.name,
-                            },
-                            onChanged: (v) => setState(() => assignee = v),
-                          ),
-                          GlassDropdown<Priority>(
-                            label: 'Priority',
-                            value: priority,
-                            options: {
-                              for (final p in Priority.values) p: p.label,
-                            },
-                            onChanged: (v) => setState(() => priority = v!),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SectionHeader(title: '04  Reference information'),
-                    GlassCard(
-                      child: Column(
-                        children: [
-                          GlassTextField(
-                            controller: reference,
-                            label: 'Reference number',
-                          ),
-                          GlassTextField(
-                            controller: authority,
-                            label: 'Authority',
-                          ),
-                          GlassTextField(
-                            controller: amount,
-                            label: 'Amount',
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return null;
-                              final value = double.tryParse(v);
-                              return value == null ||
-                                      !value.isFinite ||
-                                      value < 0
-                                  ? 'Enter a valid positive amount.'
-                                  : null;
-                            },
-                          ),
-                          GlassDropdown<String>(
-                            label: 'Currency',
-                            value: currency,
-                            options: const {
-                              'INR': 'INR · Indian rupee',
-                              'USD': 'USD · US dollar',
-                              'GBP': 'GBP · Pound sterling',
-                              'EUR': 'EUR · Euro',
-                            },
-                            onChanged: (v) => setState(() => currency = v!),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SectionHeader(title: '05  Reminders'),
-                    GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'A little notice goes a long way.',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final d in [30, 15, 7, 3, 1, 0])
-                                FilterChip(
-                                  label: Text(
-                                    d == 0
-                                        ? 'On due date'
-                                        : '$d ${d == 1 ? 'day' : 'days'} before',
-                                  ),
-                                  selected: reminders.contains(d),
-                                  onSelected: (v) => setState(
-                                    () => v
-                                        ? reminders.add(d)
-                                        : reminders.remove(d),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SectionHeader(title: '06  Supporting documents'),
-                    GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'PDF, images, Word, or text · up to 20 MB each',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          for (final f in files)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(f.name),
-                              subtitle: Text(
-                                '${(f.size / 1024).toStringAsFixed(1)} KB',
-                              ),
-                              trailing: IconButton(
-                                tooltip: 'Remove selection',
-                                icon: const Icon(Icons.close),
-                                onPressed: () =>
-                                    setState(() => files.remove(f)),
-                              ),
-                            ),
-                          SecondaryButton(
-                            label: 'Attach documents',
-                            icon: Icons.attach_file,
-                            onPressed: pick,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SectionHeader(title: '07  Notes'),
-                    GlassTextField(
-                      controller: notes,
-                      label: 'Notes',
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 20),
                     PrimaryButton(
                       label: original == null
                           ? 'Create Due Item'
@@ -506,6 +498,43 @@ class _DueFormState extends ConsumerState<DueFormScreen> {
       ),
     );
   }
+}
+
+/// A plain heading between groups of fields; no card around the group.
+class _FormSection extends StatelessWidget {
+  final String title;
+  const _FormSection(this.title);
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 18, bottom: 10),
+    child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+  );
+}
+
+/// Two fields side by side on wide screens, stacked on phones.
+class _FieldPair extends StatelessWidget {
+  final Widget first, second;
+  final double gap;
+  const _FieldPair(this.first, this.second, {this.gap = 0});
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) => c.maxWidth >= 520
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: first),
+              const SizedBox(width: 12),
+              Expanded(child: second),
+            ],
+          )
+        : Column(
+            children: [
+              first,
+              SizedBox(height: gap),
+              second,
+            ],
+          ),
+  );
 }
 
 class DateField extends StatelessWidget {

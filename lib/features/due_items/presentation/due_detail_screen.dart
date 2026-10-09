@@ -221,21 +221,10 @@ class _DetailState extends ConsumerState<DueDetailScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(item.title, style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 15),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              DueStatusBadge(status: status),
-              if (item.status == DueStatus.inProgress &&
-                  status != DueStatus.inProgress)
-                const DueStatusBadge(status: DueStatus.inProgress),
-            ],
-          ),
+          const SizedBox(height: 8),
+          Text(item.title, style: Theme.of(context).textTheme.headlineSmall),
           if (item.description.isNotEmpty) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 6),
             Text(
               item.description,
               style: TextStyle(
@@ -243,110 +232,124 @@ class _DetailState extends ConsumerState<DueDetailScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           GlassCard(
-            blur: true,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
             child: Column(
-              children: [
-                Text(
-                  'DUE DATE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 13),
-                Text(
-                  DateFormat('d MMM yyyy').format(item.dueDate).toUpperCase(),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineLarge?.copyWith(fontSize: 25),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  item.isClosed
-                      ? item.status.label.toUpperCase()
-                      : DueDates.relative(item.dueDate, today).toUpperCase(),
-                  style: TextStyle(
-                    color: statusTextColor(context, status),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SectionHeader(title: 'Progress'),
-          GlassCard(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final progress in [
-                  DueStatus.upcoming,
-                  DueStatus.inProgress,
-                ])
-                  ChoiceChip(
-                    label: Text(progress.label),
-                    selected: item.status == progress,
-                    onSelected: canUpdate && !busy
-                        ? (_) => action(
-                            () => ref
-                                .read(workspaceProvider.notifier)
-                                .act(
-                                  (r, a) => r.setProgress(a, item.id, progress),
-                                ),
-                            'Progress updated',
-                          )
-                        : null,
-                  ),
-                ChoiceChip(
-                  label: const Text('Completed'),
-                  selected: item.completionDate != null,
-                  onSelected: canUpdate && !busy
-                      ? (_) => glassSheet(context, CompleteSheet(item: item))
-                      : null,
-                ),
-              ],
-            ),
-          ),
-          const SectionHeader(title: 'Responsibility & details'),
-          GlassCard(
-            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    UserAvatar(name: item.assignedToName, radius: 23),
-                    const SizedBox(width: 13),
+                    Icon(
+                      Icons.event_rounded,
+                      size: 20,
+                      color: statusTextColor(context, status),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'ASSIGNED TO',
-                            style: TextStyle(
-                              fontSize: 9,
-                              letterSpacing: 1.2,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+                            DateFormat('EEE, d MMM yyyy').format(item.dueDate),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
-                          const SizedBox(height: 5),
                           Text(
-                            item.assignedToName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            item.isClosed
+                                ? item.status.label
+                                : DueDates.relative(item.dueDate, today),
+                            style: TextStyle(
+                              color: statusTextColor(context, status),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
                     ),
+                    DueStatusBadge(status: status),
                   ],
                 ),
-                const Divider(),
+                const Divider(height: 22),
+                Text(
+                  'Progress',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final progress in [
+                      DueStatus.upcoming,
+                      DueStatus.inProgress,
+                    ])
+                      ChoiceChip(
+                        showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        label: Text(progress.label),
+                        selected: item.status == progress,
+                        onSelected: canUpdate && !busy
+                            ? (_) => action(
+                                () => ref
+                                    .read(workspaceProvider.notifier)
+                                    .act(
+                                      (r, a) =>
+                                          r.setProgress(a, item.id, progress),
+                                    ),
+                                'Progress updated',
+                              )
+                            : null,
+                      ),
+                    ChoiceChip(
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      label: const Text('Completed'),
+                      selected: item.completionDate != null,
+                      onSelected: canUpdate && !busy
+                          ? (_) =>
+                                glassSheet(context, CompleteSheet(item: item))
+                          : null,
+                    ),
+                  ],
+                ),
+                const Divider(height: 22),
+                Row(
+                  children: [
+                    UserAvatar(name: item.assignedToName, radius: 14),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Assigned to ',
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            TextSpan(
+                              text: item.assignedToName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 _DetailRow('Priority', item.priority.label),
                 _DetailRow(
                   'Frequency',
@@ -406,7 +409,7 @@ class _DetailState extends ConsumerState<DueDetailScreen> {
           if (item.notes.isNotEmpty) GlassCard(child: Text(item.notes)),
           for (final e in events.where((e) => e.type == 'note_added'))
             Padding(
-              padding: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.only(top: 8),
               child: GlassCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,12 +447,12 @@ class _DetailRow extends StatelessWidget {
   const _DetailRow(this.label, this.value);
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
+    padding: const EdgeInsets.symmetric(vertical: 5),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 100,
+          width: 96,
           child: Text(
             label,
             style: TextStyle(
@@ -474,7 +477,7 @@ class ActivityTile extends StatelessWidget {
   const ActivityTile({super.key, required this.event});
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 10),
+    padding: const EdgeInsets.symmetric(vertical: 7),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

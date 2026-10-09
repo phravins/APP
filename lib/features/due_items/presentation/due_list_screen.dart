@@ -75,7 +75,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Column(
               children: [
                 ScreenHeading(
@@ -110,24 +110,30 @@ class _DueListState extends ConsumerState<DueListScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    IconButton.outlined(
-                      style: AppIconButtonStyles.outlined(
-                        Theme.of(context).colorScheme,
+                    const SizedBox(width: 8),
+                    Badge(
+                      isLabelVisible: filters.active,
+                      smallSize: 9,
+                      child: IconButton.outlined(
+                        style: AppIconButtonStyles.outlined(
+                          Theme.of(context).colorScheme,
+                        ),
+                        tooltip: filters.active
+                            ? 'Filter DueItems (filters on)'
+                            : 'Filter DueItems',
+                        onPressed: () async {
+                          final result = await glassSheet<DueFilter>(
+                            context,
+                            DueFilterSheet(initial: filters),
+                          );
+                          if (result != null) setState(() => filters = result);
+                        },
+                        icon: const Icon(Icons.tune_rounded),
                       ),
-                      tooltip: 'Filter DueItems',
-                      onPressed: () async {
-                        final result = await glassSheet<DueFilter>(
-                          context,
-                          DueFilterSheet(initial: filters),
-                        );
-                        if (result != null) setState(() => filters = result);
-                      },
-                      icon: const Icon(Icons.tune_rounded),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -149,8 +155,9 @@ class _DueListState extends ConsumerState<DueListScreen> {
                           segment,
                       })
                         Padding(
-                          padding: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.only(right: 6),
                           child: ChoiceChip(
+                            showCheckmark: false,
                             label: Text(label),
                             selected: segment == label,
                             onSelected: (_) => setState(() => segment = label),
@@ -159,7 +166,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 2),
                 Row(
                   children: [
                     Text(
@@ -179,7 +186,10 @@ class _DueListState extends ConsumerState<DueListScreen> {
                           PopupMenuItem(value: s, child: Text(s)),
                       ],
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
                         child: Row(
                           children: [
                             const Icon(Icons.swap_vert_rounded, size: 16),
@@ -246,7 +256,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
                           physics: const AlwaysScrollableScrollPhysics(),
                           keyboardDismissBehavior:
                               ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                          padding: const EdgeInsets.fromLTRB(16, 2, 16, 20),
                           itemCount: (items.length / cols).ceil(),
                           itemBuilder: (context, index) => cols == 1
                               ? DueItemCard(item: items[index])
@@ -258,7 +268,7 @@ class _DueListState extends ConsumerState<DueListScreen> {
                                         item: items[index * 2],
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
+                                    const SizedBox(width: 10),
                                     Expanded(
                                       child: index * 2 + 1 < items.length
                                           ? DueItemCard(
@@ -349,7 +359,7 @@ class _FilterState extends ConsumerState<DueFilterSheet> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text('Filter obligations', style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 24),
+      const SizedBox(height: 16),
       GlassDropdown<DueStatus?>(
         label: 'Status',
         value: status,

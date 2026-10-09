@@ -7,7 +7,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/due_dates.dart';
 import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
-import '../../../core/widgets/illustrations.dart';
 import '../../../shared/widgets/due_widgets.dart';
 import '../../../shared/models/models.dart';
 import '../domain/dashboard_summary.dart';
@@ -146,9 +145,11 @@ class DashboardScreen extends ConsumerWidget {
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       'Hello, ${user.name.split(' ').first}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const CompanySwitcher(),
@@ -158,141 +159,76 @@ class DashboardScreen extends ConsumerWidget {
               Badge(
                 isLabelVisible: unread > 0,
                 label: Text('$unread'),
-                offset: const Offset(-4, 4),
-                child: IconButton.outlined(
+                offset: const Offset(-6, 6),
+                child: IconButton(
                   tooltip: 'Notifications',
-                  style: AppIconButtonStyles.outlined(scheme),
                   onPressed: () => context.push('/notifications'),
                   icon: const Icon(Icons.notifications_none_rounded),
                 ),
               ),
-              const SizedBox(width: 4),
               IconButton(
                 tooltip: 'Profile',
                 onPressed: () => context.push('/profile'),
                 icon: UserAvatar(
                   name: user.name,
                   image: user.avatarUrl,
-                  radius: 20,
+                  radius: 16,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          _AttentionCard(summary: summary),
           const SectionHeader(title: 'Due overview'),
-          LayoutBuilder(
-            builder: (context, c) {
-              final cols = c.maxWidth >= 640 ? 4 : 2;
-              const gap = 10.0;
-              final metrics = [
-                (
-                  'Overdue',
-                  summary.overdue,
-                  Icons.warning_amber_rounded,
-                  AppColors.danger,
-                ),
-                (
-                  'Today',
-                  summary.today,
-                  Icons.today_rounded,
-                  AppColors.warning,
-                ),
-                (
-                  'This Week',
-                  summary.thisWeek,
-                  Icons.date_range_rounded,
-                  AppColors.primary,
-                ),
-                (
-                  'Upcoming',
-                  summary.upcoming,
-                  Icons.event_available_rounded,
-                  const Color(0xFF318CBC),
-                ),
-              ];
-              return Wrap(
-                spacing: gap,
-                runSpacing: gap,
-                children: [
-                  for (final (label, count, icon, color) in metrics)
-                    SizedBox(
-                      width: (c.maxWidth - gap * (cols - 1)) / cols,
-                      child: GlassCard(
-                        padding: const EdgeInsets.all(14),
-                        onTap: () => context.go(
-                          '/due?filter=${Uri.encodeComponent(label)}',
-                        ),
-                        child: Row(
-                          children: [
-                            IllustratedIcon(icon: icon, color: color, size: 40),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '$count',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium
-                                        ?.copyWith(fontSize: 24, height: 1.1),
-                                  ),
-                                  Text(
-                                    label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
+          _OverviewCard(summary: summary),
+          const SizedBox(height: 10),
+          Row(
             children: [
               if (Permissions.manage(user, org.id)) ...[
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 46),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(44, 42),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    onPressed: () => context.push('/due/new'),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Add Due Item'),
                   ),
-                  onPressed: () => context.push('/due/new'),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add Due Item'),
                 ),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(48, 46),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(44, 42),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    onPressed: () => context.push('/due/new?templates=true'),
+                    icon: const Icon(Icons.dashboard_customize_outlined),
+                    label: const Text('Templates'),
                   ),
-                  onPressed: () => context.push('/due/new?templates=true'),
-                  icon: const Icon(Icons.dashboard_customize_outlined),
-                  label: const Text('Templates'),
                 ),
-              ],
-              IconButton.outlined(
-                tooltip: 'Upload document',
-                style: AppIconButtonStyles.outlined(scheme),
-                onPressed: () => context.push('/documents?upload=true'),
-                icon: const Icon(
-                  Icons.upload_file_outlined,
-                  size: AppSizes.iconMd,
+                const SizedBox(width: 8),
+                IconButton.outlined(
+                  tooltip: 'Upload document',
+                  style: AppIconButtonStyles.outlined(scheme).copyWith(
+                    minimumSize: const WidgetStatePropertyAll(Size(42, 42)),
+                  ),
+                  onPressed: () => context.push('/documents?upload=true'),
+                  icon: const Icon(
+                    Icons.upload_file_outlined,
+                    size: AppSizes.iconMd,
+                  ),
                 ),
-              ),
+              ] else
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(44, 42),
+                    ),
+                    onPressed: () => context.push('/documents?upload=true'),
+                    icon: const Icon(Icons.upload_file_outlined),
+                    label: const Text('Upload document'),
+                  ),
+                ),
             ],
           ),
           LayoutBuilder(
@@ -352,95 +288,114 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _AttentionCard extends StatelessWidget {
+/// One compact card: what needs attention first, then the four counts.
+class _OverviewCard extends StatelessWidget {
   final DashboardSummary summary;
-  const _AttentionCard({required this.summary});
+  const _OverviewCard({required this.summary});
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final accent = summary.overdue > 0
         ? statusTextColor(context, DueStatus.overdue)
         : scheme.primary;
+    final metrics = [
+      ('Overdue', summary.overdue, statusTextColor(context, DueStatus.overdue)),
+      ('Today', summary.today, statusTextColor(context, DueStatus.dueToday)),
+      ('This Week', summary.thisWeek, scheme.primary),
+      ('Upcoming', summary.upcoming, scheme.onSurface),
+    ];
     return GlassCard(
-      padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+      padding: EdgeInsets.zero,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: accent,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Needs attention',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      summary.attention == 0
-                          ? 'You’re all caught up.'
-                          : '${summary.attention} items need your attention',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(fontSize: 22),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${summary.overdue} overdue · ${summary.today} today · ${summary.dueSoon} soon',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const DeskIllustration(kind: DeskArt.attention, size: 64),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Divider(color: scheme.outlineVariant),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Start with what is overdue.',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: scheme.onSurfaceVariant,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: summary.attention == 0 ? scheme.outline : accent,
+                    shape: BoxShape.circle,
                   ),
                 ),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(48, 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        summary.attention == 0
+                            ? 'You’re all caught up.'
+                            : '${summary.attention} items need your attention',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '${summary.overdue} overdue · ${summary.today} today · ${summary.dueSoon} soon',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                onPressed: () => context.go('/due?filter=Attention'),
-                child: const Text('Review now'),
-              ),
-            ],
+                if (summary.attention > 0)
+                  TextButton(
+                    onPressed: () => context.go('/due?filter=Attention'),
+                    child: const Text('Review now'),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                for (final (i, (label, count, color)) in metrics.indexed) ...[
+                  if (i > 0) const VerticalDivider(width: 1),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => context.go(
+                        '/due?filter=${Uri.encodeComponent(label)}',
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 4,
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '$count',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                height: 1.2,
+                                color: count == 0
+                                    ? scheme.onSurfaceVariant
+                                    : color,
+                              ),
+                            ),
+                            Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
@@ -473,7 +428,7 @@ class _WeekDay extends StatelessWidget {
         ),
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 2),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isToday ? scheme.onSurface : null,
             borderRadius: BorderRadius.circular(AppSizes.radiusMd),
@@ -490,7 +445,7 @@ class _WeekDay extends StatelessWidget {
                       : scheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 '${day.day}',
                 style: TextStyle(
@@ -499,7 +454,7 @@ class _WeekDay extends StatelessWidget {
                   color: isToday ? scheme.surface : scheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Container(
                 width: 6,
                 height: 6,

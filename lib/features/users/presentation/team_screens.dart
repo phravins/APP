@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/providers.dart';
-import '../../../core/config/environment.dart';
 import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
 import '../../../shared/models/models.dart';
@@ -246,10 +245,10 @@ class _InviteState extends ConsumerState<InviteMemberScreen> {
                     },
                     onChanged: (v) => setState(() => role = v!),
                   ),
-                  if (AppConfig.isDemo)
+                  if (ref.watch(storageProvider).isDevice)
                     const GlassCard(
                       child: Text(
-                        'Demo invitations are saved locally. No email is sent.',
+                        'Invitations are saved on this device. No email is sent.',
                       ),
                     ),
                   const SizedBox(height: 24),
@@ -272,8 +271,8 @@ class _InviteState extends ConsumerState<InviteMemberScreen> {
                                 role,
                               ),
                             ),
-                        success: AppConfig.isDemo
-                            ? 'Demo invitation created'
+                        success: ref.read(storageProvider).isDevice
+                            ? 'Invitation saved'
                             : 'Invitation sent',
                       );
                       if (context.mounted) {

@@ -12,8 +12,8 @@ abstract final class AppColors {
 /// Shared size tokens so icons, corners and touch targets stay consistent.
 abstract final class AppSizes {
   static const iconXs = 16.0, iconSm = 18.0, iconMd = 20.0, iconLg = 24.0;
-  static const radiusSm = 10.0, radiusMd = 14.0, radiusLg = 18.0;
-  static const radiusXl = 24.0;
+  static const radiusSm = 8.0, radiusMd = 12.0, radiusLg = 14.0;
+  static const radiusXl = 20.0;
 
   /// Width at which the bottom bar gives way to a navigation rail. Phones
   /// (shortest side under this) keep the bottom bar even in landscape.
@@ -23,18 +23,18 @@ abstract final class AppSizes {
   static const extendedRailBreakpoint = 1200.0;
 }
 
-/// Square-ish 48px icon buttons used beside headings and search fields.
+/// Square-ish 44px icon buttons used beside headings and search fields.
 abstract final class AppIconButtonStyles {
   static ButtonStyle filled() => IconButton.styleFrom(
     backgroundColor: AppColors.primary,
     foregroundColor: Colors.white,
-    minimumSize: const Size(48, 48),
+    minimumSize: const Size(44, 44),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppSizes.radiusMd),
     ),
   );
   static ButtonStyle outlined(ColorScheme scheme) => IconButton.styleFrom(
-    minimumSize: const Size(48, 48),
+    minimumSize: const Size(44, 44),
     backgroundColor: scheme.surfaceContainerLowest,
     foregroundColor: scheme.onSurface,
     side: BorderSide(color: scheme.outlineVariant),
@@ -117,12 +117,12 @@ abstract final class AppTheme {
         );
     return base.copyWith(
       textTheme: base.textTheme.copyWith(
-        headlineLarge: serifStyle(base.textTheme.headlineLarge, 30),
-        headlineMedium: serifStyle(base.textTheme.headlineMedium, 26),
-        headlineSmall: serifStyle(base.textTheme.headlineSmall, 22),
-        titleLarge: serifStyle(base.textTheme.titleLarge, 20),
+        headlineLarge: serifStyle(base.textTheme.headlineLarge, 25),
+        headlineMedium: serifStyle(base.textTheme.headlineMedium, 22),
+        headlineSmall: serifStyle(base.textTheme.headlineSmall, 20),
+        titleLarge: serifStyle(base.textTheme.titleLarge, 18),
         titleMedium: base.textTheme.titleMedium?.copyWith(
-          fontSize: 15.5,
+          fontSize: 15,
           fontWeight: FontWeight.w600,
           letterSpacing: -.1,
         ),
@@ -137,10 +137,11 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
+        isDense: true,
         fillColor: scheme.surfaceContainerLowest,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 14,
+          vertical: 13,
         ),
         border: border(scheme.outlineVariant),
         enabledBorder: border(scheme.outlineVariant),
@@ -151,7 +152,7 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: dark ? const Color(0xFF1C1B1A) : Colors.white,
-          minimumSize: const Size(48, 50),
+          minimumSize: const Size(44, 46),
           iconSize: AppSizes.iconMd,
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -166,7 +167,7 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, 50),
+          minimumSize: const Size(44, 46),
           backgroundColor: scheme.surfaceContainerLowest,
           foregroundColor: scheme.onSurface,
           shape: RoundedRectangleBorder(
@@ -196,7 +197,7 @@ abstract final class AppTheme {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: const Size(44, 44),
           iconSize: AppSizes.iconLg,
         ),
       ),
@@ -310,7 +311,7 @@ abstract final class AppTheme {
         ),
         shape: const StadiumBorder(),
         side: BorderSide(color: scheme.outlineVariant),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       ),
       switchTheme: SwitchThemeData(
         trackOutlineColor: WidgetStatePropertyAll(scheme.outlineVariant),

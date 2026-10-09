@@ -12,6 +12,10 @@ import 'package:duedesk/app/app.dart';
 import 'package:duedesk/app/providers.dart';
 import 'package:duedesk/app/router.dart';
 import 'package:duedesk/core/storage/local_store.dart';
+import 'package:duedesk/core/storage/storage_settings.dart';
+import 'package:duedesk/features/auth/data/auth_repositories.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:duedesk/core/widgets/glass.dart';
 import 'package:duedesk/shared/widgets/due_widgets.dart';
 import 'package:duedesk/features/due_items/data/demo_seed.dart';
 import 'package:duedesk/shared/models/models.dart';
@@ -171,7 +175,7 @@ void main() {
     final c = await boot(tester);
     c.read(routerProvider).go('/due/gst');
     await tester.pumpAndSettle();
-    expect(find.text('GSTR-3B Filing'), findsOneWidget);
+    expect(find.text('GSTR-3B Filing'), findsWidgets);
     await tester.tap(find.widgetWithText(FilledButton, 'Complete'));
     await tester.pumpAndSettle();
     await reveal(
@@ -205,9 +209,7 @@ void main() {
         'Equipment inspection',
       );
       final category = find.byWidgetPredicate(
-        (w) =>
-            w is DropdownButtonFormField<String> &&
-            w.decoration.labelText == 'Category *',
+        (w) => w is GlassDropdown<String> && w.label == 'Category',
       );
       await reveal(tester, category);
       await tester.tap(category);
@@ -221,9 +223,7 @@ void main() {
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
       final assignee = find.byWidgetPredicate(
-        (w) =>
-            w is DropdownButtonFormField<String> &&
-            w.decoration.labelText == 'Assign to *',
+        (w) => w is GlassDropdown<String> && w.label == 'Assign to',
       );
       await reveal(tester, assignee);
       await tester.tap(assignee);
@@ -421,6 +421,69 @@ void main() {
     );
     expect(tester.takeException(), null);
   });
+  testWidgets('Welcome lets people pick device or self-hosted storage', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final c = await boot(tester, signedIn: false);
+    expect(c.read(storageProvider).mode, StorageMode.device);
+    final chip = find.textContaining('This device');
+    await reveal(tester, chip);
+    await tester.tap(chip);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Self-hosted server'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Server address'),
+      'http://due.example.com',
+    );
+    await tester.tap(find.text('Connect to server'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Use https:// for servers outside your local network.'),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Server address'),
+      'due.example.com/',
+    );
+    await tester.tap(find.text('Connect to server'));
+    await tester.pumpAndSettle();
+    expect(c.read(storageProvider).mode, StorageMode.server);
+    expect(c.read(storageProvider).serverUrl, 'https://due.example.com');
+    expect(c.read(authRepositoryProvider), isA<ApiAuthRepository>());
+    expect(c.read(preferencesProvider).getString('storageMode'), 'server');
+    expect(find.text('Continue in demo mode'), findsNothing);
+    expect(find.textContaining('due.example.com'), findsWidgets);
+  });
+  testWidgets('Switching storage from Settings signs out first', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final c = await boot(tester);
+    c.read(routerProvider).push('/settings/storage');
+    await tester.pumpAndSettle();
+    expect(find.text('Stored on this device'), findsOneWidget);
+    await tester.tap(find.text('Change storage'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Self-hosted server'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Server address'),
+      'http://192.168.1.20:8080',
+    );
+    await tester.tap(find.text('Connect to server'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Switch and sign out'));
+    await tester.pumpAndSettle();
+    expect(c.read(authProvider).value, isNull);
+    expect(c.read(storageProvider).serverUrl, 'http://192.168.1.20:8080');
+    expect(c.read(preferencesProvider).getString('demoUser'), isNull);
+    expect(
+      c.read(routerProvider).routeInformationProvider.value.uri.path,
+      '/welcome',
+    );
+  });
   testWidgets('Capture key screens for visual inspection', (tester) async {
     final c = await boot(tester);
     for (final (route, mode, filename) in [
@@ -431,6 +494,7 @@ void main() {
       ('/due', ThemeMode.light, 'obligations-light'),
       ('/due?filter=Pinned', ThemeMode.dark, 'empty-pins-dark'),
       ('/due/new?templates=true', ThemeMode.light, 'templates-light'),
+      ('/settings/storage', ThemeMode.light, 'storage-light'),
     ]) {
       await c.read(themeProvider.notifier).set(mode);
       c.read(routerProvider).go(route);

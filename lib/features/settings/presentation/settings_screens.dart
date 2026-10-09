@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/providers.dart';
-import '../../../core/config/environment.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/permissions.dart';
 import '../../../core/widgets/glass.dart';
@@ -83,6 +82,7 @@ class MoreScreen extends ConsumerWidget {
                   Icons.lock_outline_rounded,
                   '/settings/security',
                 ),
+                _Entry('Storage', Icons.storage_rounded, '/settings/storage'),
               ],
             ),
           ),
@@ -107,7 +107,9 @@ class MoreScreen extends ConsumerWidget {
                     if (await confirmAction(
                           context,
                           'Sign out?',
-                          'Your local demo data and history will remain on this device.',
+                          ref.read(storageProvider).isDevice
+                              ? 'Your data and history stay saved on this device.'
+                              : 'Your data stays on your server. Sign in again to see it.',
                           confirm: 'Sign out',
                         ) &&
                         context.mounted) {
@@ -224,10 +226,10 @@ class NotificationSettingsScreen extends ConsumerWidget {
       title: 'Notification settings',
       child: PageBody(
         children: [
-          if (AppConfig.isDemo)
+          if (ref.watch(storageProvider).isDevice)
             const GlassCard(
               child: Text(
-                'Preferences are saved on this device. Demo mode uses the in-app inbox; push and email delivery require the production service.',
+                'Preferences are saved on this device. With device storage, reminders arrive in the in-app inbox; push and email need a DueDesk server.',
               ),
             ),
           const SectionHeader(title: 'Keep me informed'),
@@ -303,6 +305,7 @@ class SecurityScreen extends ConsumerStatefulWidget {
 
 class _SecurityState extends ConsumerState<SecurityScreen> {
   bool busy = false;
+  bool get device => ref.read(storageProvider).isDevice;
   @override
   Widget build(BuildContext context) => DueDeskScaffold(
     title: 'Security',
@@ -319,13 +322,13 @@ class _SecurityState extends ConsumerState<SecurityScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                AppConfig.isDemo ? 'Local demo session' : 'Protected session',
+                device ? 'Device session' : 'Protected session',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
               Text(
-                AppConfig.isDemo
-                    ? 'This is a demo workspace. No production credentials are used. Sample data and uploaded evidence stay on this device.'
+                device
+                    ? 'Your workspace and uploaded evidence are saved on this device. Passwords are stored only as salted hashes and never leave it.'
                     : 'Authentication tokens are stored in the platform secure store. Your organisation controls access through roles.',
               ),
               const SizedBox(height: 20),
@@ -339,8 +342,8 @@ class _SecurityState extends ConsumerState<SecurityScreen> {
                     () => ref
                         .read(authRepositoryProvider)
                         .forgotPassword(ref.read(currentUserProvider).email),
-                    success: AppConfig.isDemo
-                        ? 'Demo mode does not send email. Demo password: demo123'
+                    success: device
+                        ? 'Accounts on this device are not reset by email. Demo password: demo123'
                         : 'If your account is eligible, reset instructions will be sent.',
                   );
                   if (mounted) setState(() => busy = false);

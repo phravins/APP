@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/providers.dart';
 import '../../../core/config/environment.dart';
 import '../../../core/widgets/glass.dart';
+import '../../settings/presentation/storage_screen.dart';
 import '../domain/auth_repository.dart';
 
 class SplashScreen extends ConsumerWidget {
@@ -161,7 +162,7 @@ class _WelcomeState extends ConsumerState<WelcomeScreen> {
                 label: 'Create an account',
                 onPressed: () => context.push('/register'),
               ),
-              if (AppConfig.isDemo) ...[
+              if (AppConfig.isDemo && ref.watch(storageProvider).isDevice) ...[
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: busy
@@ -179,7 +180,9 @@ class _WelcomeState extends ConsumerState<WelcomeScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              const StorageChip(),
+              const SizedBox(height: 4),
               Text(
                 'Built for businesses that stay ahead.',
                 textAlign: TextAlign.center,
@@ -279,8 +282,8 @@ class _AuthFormState extends ConsumerState<AuthFormScreen> {
       _AuthHeading(
         title: 'Check your inbox.',
         tagline: 'Your link is on its way.',
-        message: AppConfig.isDemo
-            ? 'Demo mode does not send email. Log in with demo@duedesk.app and demo123.'
+        message: ref.read(storageProvider).isDevice
+            ? 'Accounts saved on this device are not reset by email. Demo access: demo@duedesk.app and demo123.'
             : 'If that email is registered, you will receive password reset instructions shortly.',
       ),
       PrimaryButton(label: 'Back to log in', onPressed: backToLogin),
@@ -290,6 +293,7 @@ class _AuthFormState extends ConsumerState<AuthFormScreen> {
   Widget formView(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= _AuthLayout.wideWidth;
     final login = !register && !forgot;
+    final storage = ref.watch(storageProvider);
     return Form(
       key: form,
       child: AutofillGroup(
@@ -313,11 +317,14 @@ class _AuthFormState extends ConsumerState<AuthFormScreen> {
                 title: 'Know what is due.',
                 tagline: 'Log in to DueDesk.',
               ),
-            if (AppConfig.isDemo && !forgot)
+            if (!forgot)
               _DemoNote(
-                register
-                    ? 'Demo mode · Your account stays on this device and no email is sent.'
-                    : 'Demo mode · Log in with demo@duedesk.app and demo123.',
+                storage.isDevice
+                    ? register
+                          ? 'Saved on this device · Your account stays on this device and no email is sent.'
+                          : 'Saved on this device · Demo access: demo@duedesk.app and demo123.'
+                    : '${register ? 'Creating an account on' : 'Logging in to'} ${storageLabel(storage)}.',
+                icon: storageIcon(storage.mode),
               ),
             if (register)
               _AuthField(
@@ -433,6 +440,7 @@ class _AuthFormState extends ConsumerState<AuthFormScreen> {
             ],
             if (!forgot)
               _LegalConsent(
+                onDevice: storage.isDevice,
                 action: register ? 'By creating an account' : 'By continuing',
               ),
           ],
@@ -759,7 +767,8 @@ class _LinkButton extends StatelessWidget {
 
 class _DemoNote extends StatelessWidget {
   final String text;
-  const _DemoNote(this.text);
+  final IconData icon;
+  const _DemoNote(this.text, {this.icon = Icons.info_outline});
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -773,7 +782,7 @@ class _DemoNote extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, size: 16, color: scheme.onSurfaceVariant),
+          Icon(icon, size: 16, color: scheme.onSurfaceVariant),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -793,7 +802,8 @@ class _DemoNote extends StatelessWidget {
 
 class _LegalConsent extends StatefulWidget {
   final String action;
-  const _LegalConsent({required this.action});
+  final bool onDevice;
+  const _LegalConsent({required this.action, required this.onDevice});
   @override
   State<_LegalConsent> createState() => _LegalConsentState();
 }
@@ -802,15 +812,15 @@ class _LegalConsentState extends State<_LegalConsent> {
   late final terms = TapGestureRecognizer()
     ..onTap = () => show(
       'Terms of service',
-      AppConfig.isDemo
-          ? 'DueDesk demo stores sample and entered data on this device. It does not submit filings, send reminders or invitations, or provide legal or tax advice. Use non-sensitive test information.'
+      widget.onDevice
+          ? 'With device storage, DueDesk keeps sample and entered data on this device. It does not submit filings, send reminders or invitations, or provide legal or tax advice. Use non-sensitive test information.'
           : 'The DueDesk terms of service are supplied by your service operator.',
     );
   late final privacy = TapGestureRecognizer()
     ..onTap = () => show(
       'Privacy policy',
-      AppConfig.isDemo
-          ? 'In demo mode, everything you enter stays on this device and is never sent to a server.'
+      widget.onDevice
+          ? 'With device storage, everything you enter stays on this device and is never sent to a server.'
           : 'The DueDesk privacy policy is supplied by your service operator.',
     );
 

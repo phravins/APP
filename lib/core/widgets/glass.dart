@@ -19,7 +19,7 @@ class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(14),
     this.radius = AppSizes.radiusLg,
     this.blur = false,
     this.onTap,
@@ -447,7 +447,7 @@ class GlassTextField extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.only(bottom: 12),
     child: TextFormField(
       controller: controller,
       obscureText: obscure,
@@ -487,28 +487,190 @@ class GlassDropdown<T> extends StatelessWidget {
     this.onChanged,
     this.required = false,
   });
+  String get fieldLabel => '$label${required ? ' *' : ''}';
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: DropdownButtonFormField<T>(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: FormField<T>(
       key: ValueKey('$label-$value-${options.length}'),
       initialValue: options.containsKey(value) ? value : null,
-      isExpanded: true,
-      decoration: InputDecoration(labelText: '$label${required ? ' *' : ''}'),
-      items: options.entries
-          .map(
-            (e) => DropdownMenuItem(
-              value: e.key,
-              child: Text(e.value, overflow: TextOverflow.ellipsis),
-            ),
-          )
-          .toList(),
-      onChanged: onChanged,
       validator: required
           ? (v) => v == null ? 'Select ${label.toLowerCase()}.' : null
           : null,
+      builder: (field) {
+        final selected = options.containsKey(field.value)
+            ? options[field.value]
+            : null;
+        final enabled = onChanged != null;
+        return Semantics(
+          button: true,
+          enabled: enabled,
+          label: fieldLabel,
+          value: selected,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+            onTap: enabled
+                ? () async {
+                    final choice = await _choose(context, field.value);
+                    if (choice == null) return;
+                    field.didChange(choice.$1);
+                    onChanged!(choice.$1);
+                  }
+                : null,
+            child: InputDecorator(
+              isEmpty: selected == null,
+              decoration: InputDecoration(
+                labelText: fieldLabel,
+                enabled: enabled,
+                errorText: field.errorText,
+                suffixIcon: const Icon(Icons.unfold_more_rounded, size: 20),
+              ),
+              child: Text(
+                selected ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        );
+      },
     ),
   );
+
+  /// Phones get a bottom sheet that is easy to reach with a thumb; wider
+  /// screens get a menu anchored under the field. A record wraps the result
+  /// so choosing a `null` option ("Any status") differs from dismissing.
+  Future<(T,)?> _choose(BuildContext context, T? current) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (MediaQuery.sizeOf(context).width >= AppSizes.railBreakpoint &&
+        box != null &&
+        box.hasSize) {
+      final overlay =
+          Navigator.of(context).overlay!.context.findRenderObject()
+              as RenderBox;
+      final rect = box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
+      return showMenu<(T,)>(
+        context: context,
+        position: RelativeRect.fromRect(
+          Rect.fromLTWH(rect.left, rect.bottom + 4, rect.width, 0),
+          Offset.zero & overlay.size,
+        ),
+        constraints: BoxConstraints(
+          minWidth: rect.width,
+          maxWidth: rect.width,
+          maxHeight: 360,
+        ),
+        items: [
+          for (final e in options.entries)
+            PopupMenuItem(
+              value: (e.key,),
+              height: 42,
+              child: _PickerRow(label: e.value, selected: e.key == current),
+            ),
+        ],
+      );
+    }
+    return glassSheet<(T,)>(
+      context,
+      _PickerSheet<T>(title: label, options: options, current: current),
+    );
+  }
+}
+
+class _PickerRow extends StatelessWidget {
+  final String label;
+  final bool selected;
+  const _PickerRow({required this.label, required this.selected});
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: scheme.onSurface,
+            ),
+          ),
+        ),
+        AnimatedOpacity(
+          opacity: selected ? 1 : 0,
+          duration: const Duration(milliseconds: 150),
+          child: Icon(Icons.check_rounded, size: 18, color: scheme.primary),
+        ),
+      ],
+    );
+  }
+}
+
+class _PickerSheet<T> extends StatefulWidget {
+  final String title;
+  final Map<T, String> options;
+  final T? current;
+  const _PickerSheet({
+    required this.title,
+    required this.options,
+    required this.current,
+  });
+  @override
+  State<_PickerSheet<T>> createState() => _PickerSheetState<T>();
+}
+
+class _PickerSheetState<T> extends State<_PickerSheet<T>> {
+  String query = '';
+  @override
+  Widget build(BuildContext context) {
+    final searchable = widget.options.length > 8;
+    final visible = widget.options.entries
+        .where((e) => e.value.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 10),
+        if (searchable) ...[
+          TextField(
+            autofocus: false,
+            decoration: const InputDecoration(
+              hintText: 'Search',
+              prefixIcon: Icon(Icons.search_rounded, size: 20),
+            ),
+            onChanged: (v) => setState(() => query = v.trim()),
+          ),
+          const SizedBox(height: 6),
+        ],
+        for (final e in visible)
+          InkWell(
+            borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+            onTap: () => Navigator.pop(context, (e.key,)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 13),
+              child: _PickerRow(
+                label: e.value,
+                selected: e.key == widget.current,
+              ),
+            ),
+          ),
+        if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text(
+              'No matches.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class SectionHeader extends StatelessWidget {
@@ -523,7 +685,7 @@ class SectionHeader extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 22, bottom: 8),
+    padding: const EdgeInsets.only(top: 18, bottom: 6),
     child: Row(
       children: [
         Expanded(
@@ -576,7 +738,7 @@ class EmptyState extends StatelessWidget {
               : message.toLowerCase().contains('search')
               ? DeskArt.search
               : DeskArt.clear,
-          size: 112,
+          size: 88,
           monochrome: true,
         ),
         const SizedBox(height: 16),
@@ -623,12 +785,12 @@ class LoadingSkeleton extends StatelessWidget {
     baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
     highlightColor: Theme.of(context).colorScheme.surface,
     child: ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       children: [
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 6; i++)
           Container(
-            height: i == 0 ? 160 : 90,
-            margin: const EdgeInsets.only(bottom: 16),
+            height: i == 0 ? 96 : 72,
+            margin: const EdgeInsets.only(bottom: 10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(AppSizes.radiusLg),
@@ -717,7 +879,7 @@ Future<T?> glassSheet<T>(BuildContext context, Widget child) =>
             maxHeight: MediaQuery.sizeOf(context).height * .9,
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: child,
           ),
         ),

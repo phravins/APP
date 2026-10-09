@@ -1,11 +1,13 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api/api_client.dart';
 import '../core/config/environment.dart';
 import '../core/errors/failures.dart';
 import '../core/storage/local_store.dart';
+import '../core/storage/storage_settings.dart';
 import '../core/utils/due_dates.dart';
 import '../shared/models/models.dart';
 import '../features/auth/domain/auth_repository.dart';
@@ -18,14 +20,34 @@ import '../features/notifications/domain/notification_service.dart';
 final preferencesProvider = Provider<SharedPreferences>(
   (ref) => throw StateError('Bootstrap must supply this dependency.'),
 );
+
+/// The workspace folder on this device's drive.
+final deviceStoreProvider = Provider<LocalStore>(
+  (ref) => throw StateError('Bootstrap must supply this dependency.'),
+);
+
+/// Offline copy of what the self-hosted server last returned.
+final serverCacheProvider = Provider<LocalStore>(
+  (ref) => throw StateError('Bootstrap must supply this dependency.'),
+);
 final localStoreProvider = Provider<LocalStore>(
-  (ref) => throw StateError('Bootstrap must supply this dependency.'),
+  (ref) => ref.watch(storageProvider).isDevice
+      ? ref.watch(deviceStoreProvider)
+      : ref.watch(serverCacheProvider),
 );
-final apiClientProvider = Provider<ApiClient>(
-  (ref) => throw StateError('Bootstrap must supply this dependency.'),
+final tokenStoreProvider = Provider<TokenStore>(
+  (ref) => TokenStore(const FlutterSecureStorage()),
 );
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final client = ApiClient(
+    ref.watch(tokenStoreProvider),
+    baseUrl: ref.watch(storageProvider).serverUrl,
+  );
+  ref.onDispose(client.dio.close);
+  return client;
+});
 final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => AppConfig.isDemo
+  (ref) => ref.watch(storageProvider).isDevice
       ? DemoAuthRepository(
           ref.watch(preferencesProvider),
           ref.watch(localStoreProvider),
@@ -33,13 +55,62 @@ final authRepositoryProvider = Provider<AuthRepository>(
       : ApiAuthRepository(ref.watch(apiClientProvider)),
 );
 final repositoryProvider = Provider<WorkspaceRepository>(
-  (ref) => AppConfig.isDemo
+  (ref) => ref.watch(storageProvider).isDevice
       ? MockDueItemRepository(ref.watch(localStoreProvider))
       : ApiDueItemRepository(
           ref.watch(apiClientProvider),
           ref.watch(localStoreProvider),
         ),
 );
+
+final storageProvider = NotifierProvider<StorageController, StorageSettings>(
+  StorageController.new,
+);
+
+class StorageController extends Notifier<StorageSettings> {
+  @override
+  StorageSettings build() {
+    final prefs = ref.watch(preferencesProvider);
+    final saved = StorageMode.values
+        .asNameMap()[prefs.getString('storageMode')];
+    return StorageSettings(
+      mode:
+          saved ??
+          (AppConfig.apiBaseUrl.isEmpty
+              ? StorageMode.device
+              : StorageMode.server),
+      serverUrl: prefs.getString('serverUrl') ?? AppConfig.apiBaseUrl,
+    );
+  }
+
+  /// Switches where the workspace is kept. Use [AuthController.switchStorage]
+  /// so any current session ends first. Moving to a different server also
+  /// drops the old server's tokens and offline copy.
+  Future<void> change(StorageMode mode, {String? serverUrl}) async {
+    final next = StorageSettings(
+      mode: mode,
+      serverUrl: serverUrl ?? state.serverUrl,
+    );
+    if (next.mode == state.mode && next.serverUrl == state.serverUrl) return;
+    if (next.serverUrl != state.serverUrl) {
+      await ref.read(tokenStoreProvider).clear();
+      if (state.serverUrl.isNotEmpty) {
+        await ref.read(serverCacheProvider).clear();
+      }
+    }
+    final prefs = ref.read(preferencesProvider);
+    await prefs.setString('storageMode', mode.name);
+    if (next.serverUrl.isEmpty) {
+      await prefs.remove('serverUrl');
+    } else {
+      await prefs.setString('serverUrl', next.serverUrl);
+    }
+    await prefs.remove('organisation');
+    state = next;
+    ref.invalidate(currentOrganisationProvider);
+  }
+}
+
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   final service = DemoNotificationService();
   ref.onDispose(service.dispose);
@@ -76,6 +147,17 @@ class AuthController extends AsyncNotifier<User?> {
         .read(currentOrganisationProvider.notifier)
         .select(u.currentOrganisationId);
     state = AsyncData(u);
+  }
+
+  /// Accounts on one store mean nothing on the other, so the current session
+  /// is signed out before the app points at a different store.
+  Future<void> switchStorage(StorageMode mode, {String? serverUrl}) async {
+    if (state.value != null) {
+      try {
+        await logout();
+      } catch (_) {}
+    }
+    await ref.read(storageProvider.notifier).change(mode, serverUrl: serverUrl);
   }
 
   Future<void> logout() async {
