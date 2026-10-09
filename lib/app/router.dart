@@ -22,6 +22,32 @@ String normalizeDeepLink(Uri uri) =>
     ? '/due${uri.path}'
     : uri.toString();
 
+/// Auth pages cross-fade with a slight rise, so switching between log in,
+/// sign up and password reset feels like one continuous screen.
+Page<void> _authPage(GoRouterState state, Widget child) => CustomTransitionPage(
+  key: state.pageKey,
+  child: child,
+  transitionDuration: const Duration(milliseconds: 320),
+  reverseTransitionDuration: const Duration(milliseconds: 220),
+  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween(
+          begin: const Offset(0, .02),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
+    );
+  },
+);
+
 class RouterRefresh extends ChangeNotifier {
   void refresh() => notifyListeners();
 }
@@ -79,15 +105,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/welcome', builder: (_, _) => const WelcomeScreen()),
       GoRoute(
         path: '/login',
-        builder: (_, _) => const AuthFormScreen(mode: 'login'),
+        pageBuilder: (_, s) =>
+            _authPage(s, const AuthFormScreen(mode: 'login')),
       ),
       GoRoute(
         path: '/register',
-        builder: (_, _) => const AuthFormScreen(mode: 'register'),
+        pageBuilder: (_, s) =>
+            _authPage(s, const AuthFormScreen(mode: 'register')),
       ),
       GoRoute(
         path: '/forgot-password',
-        builder: (_, _) => const AuthFormScreen(mode: 'forgot'),
+        pageBuilder: (_, s) =>
+            _authPage(s, const AuthFormScreen(mode: 'forgot')),
       ),
       GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingScreen()),
       ShellRoute(

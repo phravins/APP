@@ -67,16 +67,11 @@ class AuthController extends AsyncNotifier<User?> {
     String name,
     String email,
     String password,
-    String company,
+    String phone,
   ) async {
     final u = await ref
         .read(authRepositoryProvider)
-        .register(
-          name: name,
-          email: email,
-          password: password,
-          company: company,
-        );
+        .register(name: name, email: email, password: password, phone: phone);
     ref
         .read(currentOrganisationProvider.notifier)
         .select(u.currentOrganisationId);

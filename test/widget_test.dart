@@ -87,7 +87,7 @@ void main() {
     final c = await boot(tester, signedIn: false);
     c.read(routerProvider).go('/login');
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
     await tester.pumpAndSettle();
     expect(find.text('Enter a valid email address.'), findsOneWidget);
     await tester.enterText(
@@ -95,11 +95,62 @@ void main() {
       'demo@duedesk.app',
     );
     await tester.enterText(find.byType(TextFormField).at(1), 'demo123');
-    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Sign in'));
-    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Continue'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
     await tester.pumpAndSettle();
     expect(c.read(authProvider).value?.id, 'management');
     expect(find.text('Due overview'), findsOneWidget);
+  });
+  testWidgets('Register validates mobile and password and creates account', (
+    tester,
+  ) async {
+    final c = await boot(tester, signedIn: false);
+    c.read(routerProvider).go('/register');
+    await tester.pumpAndSettle();
+    final create = find.widgetWithText(FilledButton, 'Create account');
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    expect(find.text('Enter your full name.'), findsOneWidget);
+    expect(find.text('Enter a 10-digit Indian mobile number.'), findsOneWidget);
+    expect(find.text('Use at least 10 characters.'), findsOneWidget);
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'Asha Sharma');
+    await tester.enterText(fields.at(1), 'asha@example.in');
+    await tester.enterText(fields.at(2), '98765 43210');
+    await tester.enterText(fields.at(3), 'local-password-1');
+    await tester.ensureVisible(create);
+    await tester.runAsync(() async {
+      await tester.tap(create);
+      for (var i = 0; i < 50 && c.read(authProvider).value == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+    });
+    await tester.pumpAndSettle();
+    final user = c.read(authProvider).value!;
+    expect(user.name, 'Asha Sharma');
+    expect(user.phone, '+919876543210');
+  });
+  testWidgets('Auth pages fit phones with large text and wide windows', (
+    tester,
+  ) async {
+    for (final (size, scale, mode) in [
+      (const Size(360, 640), 1.5, ThemeMode.light),
+      (const Size(1440, 900), 1.0, ThemeMode.dark),
+    ]) {
+      final c = await boot(
+        tester,
+        signedIn: false,
+        size: size,
+        textScale: scale,
+      );
+      await c.read(themeProvider.notifier).set(mode);
+      for (final route in ['/login', '/register', '/forgot-password']) {
+        c.read(routerProvider).go(route);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), null, reason: '$route at $size');
+        expect(find.text('DueDesk'), findsOneWidget);
+      }
+    }
   });
   testWidgets('Dashboard counts and navigation use repository data', (
     tester,

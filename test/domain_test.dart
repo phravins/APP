@@ -4,6 +4,7 @@ import 'package:duedesk/shared/models/models.dart';
 import 'package:duedesk/core/utils/due_dates.dart';
 import 'package:duedesk/features/due_items/data/demo_seed.dart';
 import 'package:duedesk/features/dashboard/domain/dashboard_summary.dart';
+import 'package:duedesk/features/auth/domain/auth_repository.dart';
 
 void main() {
   setUpAll(tz.initializeTimeZones);
@@ -197,5 +198,19 @@ void main() {
   test('Snapshot serialization preserves every entity', () {
     final data = demoSeed(now: today);
     expect(WorkspaceData.fromJson(data.toJson()).toJson(), data.toJson());
+  });
+  test('Indian mobile numbers normalise like the web sign-up', () {
+    for (final raw in [
+      '98765 43210',
+      '09876543210',
+      '+91 98765 43210',
+      '919876543210',
+      '98765-43210',
+    ]) {
+      expect(normaliseIndianMobile(raw), '+919876543210', reason: raw);
+    }
+    for (final raw in ['', '12345 67890', '98765 4321', '+1 98765 43210']) {
+      expect(normaliseIndianMobile(raw), isNull, reason: raw);
+    }
   });
 }

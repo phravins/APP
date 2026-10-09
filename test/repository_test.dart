@@ -261,7 +261,7 @@ void main() {
         name: 'New Owner',
         email: 'owner@example.com',
         password: 'local-password-123',
-        company: 'New Company',
+        phone: '+919876543210',
       );
       await auth.signOut();
       expect(

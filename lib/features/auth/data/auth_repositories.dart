@@ -83,7 +83,7 @@ class DemoAuthRepository implements AuthRepository {
     required String name,
     required String email,
     required String password,
-    required String company,
+    required String phone,
   }) async {
     final d = await _data();
     final normalised = email.toLowerCase().trim();
@@ -97,6 +97,7 @@ class DemoAuthRepository implements AuthRepository {
       id: newId(),
       name: name,
       email: email,
+      phone: phone,
       currentOrganisationId: orgId,
       memberships: {orgId: Role.owner},
     );
@@ -105,7 +106,11 @@ class DemoAuthRepository implements AuthRepository {
         users: [...d.users, user],
         organisations: [
           ...d.organisations,
-          Organisation(id: orgId, name: company, slug: orgId),
+          Organisation(
+            id: orgId,
+            name: "${name.split(' ').first}'s company",
+            slug: orgId,
+          ),
         ],
         categories: [
           ...d.categories,
@@ -201,12 +206,12 @@ class ApiAuthRepository implements AuthRepository {
     required String name,
     required String email,
     required String password,
-    required String company,
+    required String phone,
   }) => _authenticate('/auth/register', {
     'name': name,
     'email': email,
+    'mobile_number': phone,
     'password': password,
-    'company_name': company,
   });
   @override
   Future<User> enterDemo() => throw const ValidationFailure(

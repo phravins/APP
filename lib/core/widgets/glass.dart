@@ -370,10 +370,15 @@ class PrimaryButton extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (loading) ...[
-          const SizedBox(
+          SizedBox(
             width: 18,
             height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: Builder(
+              builder: (context) => CircularProgressIndicator(
+                strokeWidth: 2,
+                color: IconTheme.of(context).color,
+              ),
+            ),
           ),
           const SizedBox(width: 10),
         ] else if (icon != null) ...[
