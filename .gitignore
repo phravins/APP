@@ -54,4 +54,5 @@ app.*.map.json
 *.jks
 *.keystore
 key.properties
-artifacts/*.apk
+# Screenshots and logs written by the test suite and tool/browser_smoke.cjs
+/artifacts/

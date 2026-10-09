@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 enum DeskArt { clear, documents, search, connection, attention }
 
-/// Compact vector artwork stays crisp at every device density.
 class DeskIllustration extends StatelessWidget {
   final DeskArt kind;
   final double size;

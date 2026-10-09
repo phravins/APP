@@ -7,7 +7,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
   flutter_riverpod: ^3.0.0
   go_router: ^17.0.0
   dio: ^5.9.0
@@ -19,8 +18,6 @@ dependencies:
   uuid: ^4.5.1
   file_picker: ^10.3.3
   image_picker: ^1.2.0
-  path_provider: ^2.1.5
-  url_launcher: ^6.3.2
   connectivity_plus: ^7.0.0
   flutter_svg: ^2.2.1
   shimmer: ^3.0.0
@@ -38,7 +35,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/branding/
-    - assets/icons/
     - assets/illustrations/
     - assets/demo/
   fonts:

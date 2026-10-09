@@ -28,7 +28,6 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // Flat card: surface colour plus a hairline border, no shadow.
     return Container(
       decoration: BoxDecoration(
         color: tint ?? scheme.surfaceContainerLowest,

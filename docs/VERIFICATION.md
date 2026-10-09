@@ -40,7 +40,7 @@ Screenshots cover light/dark dashboards, compact obligation cards, monochrome em
 - Android debug APK: `/workspace/DueDesk-debug.apk` (also `build/app/outputs/flutter-apk/app-debug.apk`).
 - APK SHA-256: `d33a17d4fd0bd51f63fb32b8fa417ac02aa4e976799b28d3f222eca25cc2e0d8`
 - Source archive: `/workspace/DueDesk-source.zip`.
-- Screenshots: `artifacts/dashboard-light.png`, `dashboard-dark.png`, `due-detail-dark.png`, `calendar-light.png`, and `browser-dashboard.png`.
+- Screenshots: written to `artifacts/` (git-ignored) by `flutter test` and `tool/browser_smoke.cjs`.
 - Logs: `artifacts/verification/`.
 
 The Android build emits a compatibility advisory from the pinned `file_picker` plugin's legacy Kotlin Gradle integration. It builds successfully with this Flutter release. This is distinct from `flutter analyze`, which has no issues.
